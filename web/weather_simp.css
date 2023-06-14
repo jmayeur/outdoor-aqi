@@ -169,7 +169,8 @@ body {
     grid-auto-rows: minmax(calc(100vh/6), auto);
     grid-template-rows: repeat(auto-fill, calc(100vh/6));
     text-align: center;
-
+    font-family: 'Bruno Ace', serif;
+    
     .item {
         display: flex;
         align-items: center;
