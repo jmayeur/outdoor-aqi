@@ -1,0 +1,31 @@
+.leftside, .rightside {
+    height: 50vh;
+    width: 100%;
+    max-width: 100%;
+}
+
+@media screen and (min-width:768px) {
+    .leftside, .rightside {
+        height: 100vh;
+    }
+}
+
+.leftside {
+    background-color: #000;
+}
+
+.rightside {
+    background-color: #000;
+}
+
+.data {
+    height: 22%;
+    vertical-align: middle;
+}
+
+.floater {
+    display:flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}

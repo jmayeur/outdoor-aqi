@@ -1,0 +1,58 @@
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title></title>
+    <style>
+        body {
+            background-color: white;
+            border: 0;
+            padding: 0;
+            margin: 0;
+        }
+
+        .scroll-wrapper {
+            overflow:auto;
+            -webkit-overflow-scrolling:touch
+        }
+
+        iframe {
+            background-color: white;
+            border: 0;
+            padding: 0;
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="scroll-wrapper">
+        <iframe id="tgt" height="100%" width="100%"></iframe>
+    </div>
+    <script>
+        const srcs = {
+            current: 'http://192.168.119.137',
+            trends: 'http://192.168.119.137/aqi_trends.html',
+        }
+
+        const setTgt = (currentTgt) => {
+            switch (currentTgt) {
+                case 'current':
+                    document.getElementById('tgt').src = srcs.trends;
+                    document.title = 'AQI Trends';
+                    return 'trends';
+                case 'trends':
+                    document.getElementById('tgt').src = srcs.current;
+                    document.title = 'Environmental Data';
+                    return 'current';
+            }
+        }
+
+        let currentTgt = setTgt('trends');
+        window.setInterval(() => {
+            currentTgt = setTgt(currentTgt);
+        }, 30000)
+    </script>
+</body>
+
+</html>

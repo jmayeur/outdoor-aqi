@@ -1,0 +1,64 @@
+<html lang="en_US">
+
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ahhhhhhhh!!!!</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chartist/0.11.4/chartist.min.css">
+    <style>
+        .container {
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           padding: 10px;
+       }
+
+       .row {
+           margin: auto;
+       }
+
+       label {
+           padding-left: 10px;
+           padding-right: 5px;
+       }
+
+   </style>
+</head>
+
+<body>
+   <div class="container">
+       <div class="row">
+           <canvas id="line-chart"></canvas>
+       </div>
+   </div>
+   <div class="container">
+       <div id="durations" class="row"></div>
+   </div>
+   <div class="container">
+       <div id="metrics" class="row">
+           <label for="metrics-selector">Metrics</label>
+           <select name="metrics-selector" id="metrics-selector">
+               <option value="aqi" selected>Air Quality (AQ)</option>
+               <option value="weather">Weather</option>
+               <option value="gas">Gasses</option>
+           </select>
+       </div>
+   </div>
+   <div class="container">
+       <div id="countdown" class="row"></div>
+   </div>
+   <div class="container">
+       <div id="charttype" class="row">
+           <label for="charttype-selector">Chart Type</label>
+           <select name="charttype-selector" id="charttype-selector">
+               <option value="current" selected>Current Data</option>
+               <option value="historical">Historical Averages</option>
+               <option value="peak">Historical Peaks</option>
+           </select>
+       </div>
+   </div>
+   <script src="./aq2-chart.js" charset="utf-8"></script>
+</body>
+
+</html>

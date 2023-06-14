@@ -1,0 +1,274 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    color: #ffffff;
+    overflow-y: hidden;
+    margin: 0;
+    padding: 0;
+    background-color: #000;
+    min-width: 100vw;
+    min-height: 100vh;
+}
+
+.weather {
+    font-family: 'Bruno Ace', serif;
+}
+
+.leftside, .rightside {
+    height: 50vh;
+    width: 100%;
+    max-width: 100%;
+}
+
+.data {
+    vertical-align: middle;
+}
+
+.location {
+    height: 6vh;
+    margin-top: 1vh;
+}
+
+.humidity, .temp, ._temp, ._aqi {
+    font-weight: 900;
+    margin-bottom: 3vh;
+}
+
+._temp, ._aqi {
+    font-size: calc(4.575rem + 3.9vw);
+}
+
+._temp:after {
+    position: absolute;
+    content: '°';
+    font-size: xx-large;
+    padding-top: 2.25vh;
+
+}
+
+._aqi:after {
+    position: absolute;
+    content: 'AQI';
+    font-size: large;
+    padding-top: 2.75vh;
+}
+
+.humidity:after {
+    position: absolute;
+    content: '%';
+    font-size: small;
+    padding-top: 0.65vh;
+}
+
+.floater {
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    margin: 0;
+}
+
+.tempbox {
+    height: 50vh;
+    vertical-align: middle;
+    position: relative;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+}
+
+@media screen and (min-width:768px) {
+    .leftside, .rightside {
+        height: 100vh;
+    }
+
+    .data {
+        height: 35vh;
+        margin-top: 7.5vh;
+    }
+
+    .section-title {
+        height: 5.8vh;
+    }
+
+    .tempbox {
+        height: 88vh;
+        width: 40vw;
+    }
+
+    .ruler {
+        width: 40vw;
+        max-width: 40vw;
+    }
+}
+
+.ruler {
+    margin-top: 0;
+    margin-bottom: 0;
+    margin-left: auto;
+    margin-right: auto;
+    height: 2px;
+}
+
+.wraptemp {
+    position: absolute;
+    top: 52%;
+    transform: translateY(-45%);
+}
+
+.noshow {
+    display: none;
+}
+
+.clock {
+    padding-top: 18vh;
+    color: #8fffa7;
+    font-family: 'Bruno Ace', serif;
+}
+
+.hours, .minutes, .meridiem {
+    text-align: center;
+    font-weight: 400;
+    padding: 0;
+}
+
+.hours, .minutes {
+    font-size: 45vw;
+    line-height: 1.1;
+    margin: 0;
+}
+
+.meridiem {
+    font-size: 22vw;
+    line-height: 1.5;
+    margin-top: 5vh;
+}
+
+.colon {
+    writing-mode: vertical-rl;
+    text-orientation: sideways;
+    font-size: 40vw;
+    font-weight: 400;
+    padding-right: 20vw;
+    margin-top: -3vh;
+    margin-bottom: -4vh;
+}
+
+.digit {
+    display: inline-block;
+    width: 50vw;
+    text-align: center;
+}
+
+.forecast {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-auto-rows: minmax(calc(100vh/6), auto);
+    grid-template-rows: repeat(auto-fill, calc(100vh/6));
+    text-align: center;
+
+    .item {
+        display: flex;
+        align-items: center;
+    }
+
+    .icon {
+        margin: 0;
+        grid-column: 3;
+        padding-left: 5vw;
+    }
+
+    .temp {
+        font-size: 8vh;
+        margin: 0;
+        grid-column: 2;
+        display: block;
+        padding-top: 2.5vh;
+    }
+
+    .temp:after {
+        position: absolute;
+        content: '°';
+        font-size: 3vh;
+        padding-top: 1.5vh;
+    }
+
+    .hour {
+        font-size: 5vh;
+        font-weight: 900;
+        grid-column: 1;
+        padding-left: 4vw;
+
+    }
+}
+
+.forecast>div:nth-child(6n + 4),
+.forecast>div:nth-child(6n + 5),
+.forecast>div:nth-child(6n + 6) {
+    background-color: #444;
+}
+
+
+@media screen and (min-width:450px) {
+    .clock {
+        padding-top: 12vh;
+    }
+}
+
+@media screen and (min-width:500px) {
+    .clock {
+        padding-top: 10vh;
+    }
+}
+
+@media screen and (min-width:550px) {
+    .clock {
+        padding-top: 2vh;
+    }
+}
+
+@media screen and (min-width:600px) {
+    .clock {
+        position: absolute;
+        top: 26vh;
+        width: 100vw;
+        margin: 0;
+        padding: 0;
+        display: block;
+        text-align: center;
+        font-size: 20vw;
+    }
+
+    .colon {
+        writing-mode: horizontal-tb;
+        text-orientation: upright;
+        font-size: 13vw;
+        padding: 0;
+        margin: 0 -7vw 0 -7vw;
+        width: auto;
+        display: inline;
+        line-height: 1.1;
+    }
+
+    .hours, .minutes, .meridiem {
+        text-align: left;
+        padding: 0;
+        line-height: 1.1;
+        font-size: 13vw;
+        margin: 0;
+        display: inline;
+    }
+
+    .noshow {
+        display: none;
+    }
+
+    .digit {
+        display: inline-block;
+        text-align: center;
+        width: auto;
+    }
+}

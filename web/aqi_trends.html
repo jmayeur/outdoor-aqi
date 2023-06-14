@@ -1,0 +1,62 @@
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width">
+    <title>Threshold Data</title>
+    <style>
+        body {
+            background: #000;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .container {
+            overflow: hidden;
+            height: 800px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 0;
+        }
+
+
+
+        #canvas {
+            background: #000;
+            margin: 0;
+            padding: 0;
+            width: 480px;
+            height: 800px;
+        }
+
+        @media screen and (max-width: 500px) {
+            #canvas {
+                width: 440px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <canvas id="canvas" width="480px" height="800px"></canvas>
+    </div>
+
+    <script src="./aq_trends_hr.js"></script>
+
+    <script>
+        const sourceRegex = /.*src\=([^&#]*)/i;
+        const source = window.location.search.match(sourceRegex);
+        if (source && source.length > 1) {
+            showTrendChart(source[1]);
+        } else {
+            showTrendChart("Outdoor");
+        }
+    </script>
+
+</body>
+
+</html>

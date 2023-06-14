@@ -1,0 +1,104 @@
+body {
+    color: #fff;
+    overflow-y: hidden;
+    margin: 0;
+    padding: 0;
+}
+
+.leftside, .rightside {
+    height: 50vh;
+    width: 100%;
+    max-width: 100%;
+}
+
+.leftside {
+    background-color: #000;
+}
+
+.rightside {
+    background-color: #000;
+}
+
+.section-title {
+    height: 6vh;
+}
+
+.data {
+    vertical-align: middle;
+}
+
+.humidity, ._temp, .aqi, span.display-5 {
+    font-weight: 900;
+}
+
+._temp, .aqi {
+    font-size: calc(4.575rem + 3.9vw);
+}
+
+.humidity, .aqi {
+    margin-bottom: 0;
+}
+
+.floater {
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    margin: 0;
+}
+
+.tempbox {
+    height: 22vh;
+    vertical-align: middle;
+    background: black;
+    position: relative;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+}
+
+.aqibox {
+    height: 22vh;
+    vertical-align: middle;
+    background: black;
+    position: relative;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+}
+
+@media screen and (min-width:768px) {
+    .leftside, .rightside {
+        height: 100vh;
+    }
+
+    .data {
+        height: 35vh;
+        margin-top: 7.5vh;
+    }
+
+    .section-title {
+        height: 5.8vh;
+    }
+
+    .tempbox {
+        height: 44vh;
+        width: 40vw;
+    }
+
+    .aqibox {
+        height: 44vh;
+        width: 40vw;
+    }
+}
+
+.wraptemp {
+    position: absolute;
+    top: 45%;
+    transform: translateY(-45%);
+}
+
+.wrapaqi {
+    position: absolute;
+    top: 55%;
+    transform: translateY(-55%);
+}
