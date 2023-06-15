@@ -57,12 +57,27 @@ const formatHourPeriods = (periods, hoursToFormat) => {
     });
 };
 
-const getIcon = (url) => {
+const getIcon = (url, dateString) => {
     const div = document.createElement('div');
     div.classList.add('icon');
     div.classList.add('item');
     const img = document.createElement('img');
-    const _url = url.replace('small', 'medium').replace(',0','');
+    let _url = url.replace('small', 'medium').replace(',0', '');
+    if (window.SunCalc) {
+        try {
+            const date = new Date(dateString);
+            const { sunrise, sunset } = window.SunCalc.getTimes(new Date(), 45.4333, -122.5142);
+
+            if (date >= sunrise && date <= sunset) {
+                _url = _url.replace('night', 'day');
+            } else if (date >= sunset) {
+                _url = _url.replace('day', 'night');
+            }
+        } catch (e) {
+            console.error(e);
+        }
+
+    }
     img.src = _url
     div.appendChild(img);
     return div;
@@ -81,7 +96,7 @@ const getHourElement = (dateString) => {
     const div = document.createElement('div');
     div.classList.add('hour');
     div.classList.add('item');
-    div.innerHTML =  date.toLocaleString('en-US', { hour: 'numeric', hour12: true });
+    div.innerHTML = date.toLocaleString('en-US', { hour: 'numeric', hour12: true });
     return div;
 };
 
@@ -93,7 +108,7 @@ const renderForecast = async (root) => {
         hours.forEach(hour => {
             root.appendChild(getHourElement(hour.startTime));
             root.appendChild(getTempElement(hour.temperature));
-            root.appendChild(getIcon(hour.icon));
+            root.appendChild(getIcon(hour.icon, hour.startTime));
         });
 
     } catch (e) {
