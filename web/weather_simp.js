@@ -14,27 +14,27 @@ const aqiEquation = (AQIHigh, AQILow, concHigh, concLow, concentration) => {
 
 const pm25aqi = (concentration) => {
     const _conc = parseFloat(concentration);
-    const c = (Math.floor(10 * _conc)) / 10;
+    const c = (Math.floor(1000 * _conc)) / 1000;
     switch (true) {
-        case (c >= 0 && c < 12.1):
-            return aqiEquation(50, 0, 12, 0, c);
-        case (c >= 12.1 && c < 35.5):
-            return aqiEquation(100, 51, 35.4, 12.1, c);
+        case (c >= 0 && c < 9):
+            return aqiEquation(50, 0, 9, 0, c);
+        case (c >= 9.1 && c < 35.4):
+            return aqiEquation(100, 51, 35.4, 9.1, c);
         case (c >= 35.5 && c < 55.5):
             return aqiEquation(150, 101, 55.4, 35.5, c);
-        case (c >= 55.5 && c < 150.5):
-            return aqiEquation(200, 151, 150.4, 55.5, c);
-        case (c >= 150.5 && c < 250.5):
-            return aqiEquation(300, 201, 250.4, 150.5, c);
-        case (c >= 250.5 && c < 350.5):
-            return aqiEquation(400, 301, 350.4, 250.5, c);
-        case (c >= 350.5 && c < 500.5):
-            return aqiEquation(500, 401, 500.4, 350.5, c);
+        case (c >= 55.5 && c < 125.4):
+            return aqiEquation(200, 151, 125.4, 55.5, c);
+        case (c >= 125.5 && c < 225.4):
+            return aqiEquation(300, 201, 225.4, 125.5, c);
+        case (c >= 225.5 && c < 325.4):
+            return aqiEquation(500, 301, 325.4, 225.5, c);
+        case (c >= 325.5 && c < 500.4):
+            return aqiEquation(500, 301, 325.4, 225.5, c);
         default:
             // We're in hell
             return 666;
     }
-}
+};
 
 const pm10aqi = (concentration) => {
     const _conc = parseFloat(concentration);
