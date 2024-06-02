@@ -163,14 +163,18 @@ body {
     text-align: center;
 }
 
-.forecast {
+.hourlyforecast {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     grid-auto-rows: minmax(calc(100vh/6), auto);
     grid-template-rows: repeat(auto-fill, calc(100vh/6));
+}
+
+.forecast {
+  
     text-align: center;
     font-family: 'Bruno Ace', serif;
-    
+
     .item {
         display: flex;
         align-items: center;
@@ -204,11 +208,63 @@ body {
         padding-left: 4vw;
 
     }
+
+    .daytemp {
+        font-size: 10vh;
+        margin: 0;
+        display: block;
+        padding-top: 2.5vh;
+    }
+
+    .daytemp:after {
+        position: absolute;
+        content: '°';
+        font-size: 4vh;
+        padding-top: 1.5vh;
+    }
+
+    .short, .rain {
+        font-size: 5vh;
+        margin: 0;
+        display: block;
+        padding-top: 2.5vh;
+    }
+
+    .low {
+        color: rgb(130, 130, 255);
+    }
+
+    .high {
+        color: rgb(255, 161, 161);
+    }
+
+    .triangle-top,
+    .triangle-bottom {
+        width: 0;
+        height: 0;
+        margin: 30px auto;
+        border-left:
+            18px solid transparent;
+        border-right:
+            18px solid transparent;
+    }
+
+    .triangle-top {
+        border-bottom:
+            30px solid rgb(255, 161, 161);;
+    }
+
+    .triangle-bottom {
+        border-top:
+            30px solid  rgb(130, 130, 255);
+    }
+
+    
 }
 
-.forecast>div:nth-child(6n + 4),
-.forecast>div:nth-child(6n + 5),
-.forecast>div:nth-child(6n + 6) {
+.hourlyforecast>div:nth-child(6n + 4),
+.hourlyforecast>div:nth-child(6n + 5),
+.hourlyforecast>div:nth-child(6n + 6) {
     background-color: #444;
 }
 

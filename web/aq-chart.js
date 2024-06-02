@@ -5,7 +5,24 @@ let currentChartType = 'current';
 let lastLoadEpoch = 0;
 let watchInterval;
 const reloadDelay = 60 * 1000; // 60 seconds;
-const chartColors = ['#003f5c', '#bc5090', '#ffa600'];
+const hexToRgbA = (hex, a) => {
+    let c;
+    const _a = a || 1;
+
+    if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)) {
+        c = hex.substring(1).split('');
+        if (c.length == 3) {
+            c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+        }
+        c = '0x' + c.join('');
+        return `rgba(${[(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',')},${_a})`;
+    }
+    throw new Error('Bad Hex');
+};
+//const baseColors = ["#e60049", "#0bb4ff", "#50e991", "#e6d800", "#9b19f5", "#ffa300", "#dc0ab4", "#b3d4ff", "#00bfa0"];
+const baseColors = ["#7c1158", "#00b7c7", "#9b19f5"];
+const chartColors = baseColors.map(hex => hexToRgbA(hex, 1));
+const chartFillColors = baseColors.map(hex => hexToRgbA(hex, .25));
 
 // Duration Selectors & Setup
 const hourDurationList = [
@@ -161,6 +178,7 @@ const getChartData = (duration, currentMetricType, currentChartType) => {
 
     return fetch(`./aq-data.json?dh=${duration}&fields=(${fields.join(',')})`)
         .then(response => response.json());
+
 };
 
 // Chart Data & Setup
@@ -168,7 +186,7 @@ const formatData = (_data) => {
 
     let startTime, endTime;
     const datasets = [];
-    const fontColor = 'white';
+    const fontColor = '#ffffff';
 
     Object.keys(_data).forEach((key, index) => {
         const element = dataElements.find(i => i.id === key);
@@ -180,49 +198,54 @@ const formatData = (_data) => {
         }
 
         const data = item.map(v => {
-            return { t: new Date(v.time), y: v.value }
+            return { x: new Date(v.time), y: v.value }
         });
 
         datasets.push({
             data,
             label: element.label,
             borderColor: chartColors[index],
-            fill: false,
+            fill: true,
+            backgroundColor: chartFillColors[index],
+            pointBackgroundColor: chartColors[index],
+            color: fontColor,
+            tension: 0.35,
         });
     });
-
 
     return {
         type: 'line',
         responsive: true,
         data: { datasets },
         options: {
-            title: {
-                display: true,
-                text: `Sensor Data  ${startTime.toLocaleDateString("en-US")} ${startTime.toLocaleTimeString("en-US")} - ${endTime.toLocaleDateString("en-US")} ${endTime.toLocaleTimeString("en-US")}`,
-                fontColor: fontColor,
-                fontSize: 22,
-            },
-            legend: {
-                labels: {
-                    fontColor: fontColor,
-                    fontSize: 18
+            plugins: {
+                title: {
+                    display: true,
+                    text: `Sensor Data  ${startTime.toLocaleDateString("en-US")} ${startTime.toLocaleTimeString("en-US")} - ${endTime.toLocaleDateString("en-US")} ${endTime.toLocaleTimeString("en-US")}`,
+                    color: fontColor,
+                    font: { size: 22 },
+                },
+                legend: {
+                    labels: {
+                        color: fontColor,
+                        font: { size: 18 },
+                    }
                 }
             },
             scales: {
-                xAxes: [{
+                x: {
                     type: 'time',
                     ticks: {
-                        fontColor: fontColor,
+                        color: fontColor,
                     }
-                }],
-                yAxes: [{
+                },
+                y: {
                     ticks: {
-                        fontColor: fontColor,
+                        color: fontColor,
                         beginAtZero: true,
                         maxTicksLimit: 5,
                     }
-                }]
+                }
             }
         }
     };
@@ -239,9 +262,6 @@ const AQIPM25 = (concentration) => {
     const c = (Math.floor(10 * _conc)) / 10;
     if (c >= 0 && c < 12.1) {
         AQI = linear(50, 0, 12, 0, c);
-    }
-    else if (c >= 12.1 && c < 35.5) {
-        AQI = linear(100, 51, 35.4, 12.1, c);
     }
     else if (c >= 35.5 && c < 55.5) {
         AQI = linear(150, 101, 55.4, 35.5, c);
@@ -337,10 +357,10 @@ const setChartBG = (chartData) => {
     ctx.canvas.style.backgroundColor = rating.color;
     ctx.canvas.style.color = rating.fontColor;
 
-    chartData.options.title.fontColor = rating.fontColor;
-    chartData.options.legend.labels.fontColor = rating.fontColor;
-    chartData.options.scales.xAxes[0].ticks.fontColor = rating.fontColor;
-    chartData.options.scales.yAxes[0].ticks.fontColor = rating.fontColor;
+    chartData.options.plugins.title.color = rating.fontColor;
+    chartData.options.plugins.legend.labels.color = rating.fontColor;
+    chartData.options.scales.x.ticks.color = rating.fontColor;
+    chartData.options.scales.y.ticks.color = rating.fontColor;
 };
 
 const setWatch = () => {
@@ -398,6 +418,3 @@ getChartData(currentDuration, currentMetricType).then(data => {
     lastLoadEpoch = Date.now();
     startWatchInterval();
 });
-
-
-

@@ -13,7 +13,7 @@
 </head>
 
 <body>
-    <div class="row g-0 weather">
+    <div class="row g-0 weather noshow">
         <div class="col-md-6 g-0">
             <div class="leftside container" id="indoor-data">
                 <div class="row g-0 data">
@@ -60,14 +60,14 @@
         <div class="col-md-6 g-0 meridiem">AM</div>
     </div>
     <div class="row g-0 forecast noshow">
-
     </div>
     <script src="./suncalc.js"></script>
     <script src="./forecast.js"></script>
     <script src="./weather_simp.js"></script>
     <script>
-        updateData();
-        setInterval(switchViews, 30000);
+        //updateData();
+        //setInterval(switchViews, 30000);
+        showForecast();
     </script>
 </body>
 
