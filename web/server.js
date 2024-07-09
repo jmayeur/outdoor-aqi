@@ -1,11 +1,11 @@
 const http = require('http');
-const util = require("util");
 const port = process.env.PORT || 3000;
 const fs = require('fs');
 const baseAssetPath = '/home/pihead/enviro-lite/web/static/';
 const prepareData = require('./preparedata');
 const { getAggData, getPeakData } = require('./historicaldata');
 const { readRealtimeData, readAboveThresholdP25Hours } = require('./db');
+const getCoreTemp = require('./getcoretemp');
 const baseHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
@@ -66,7 +66,8 @@ const getFileNameFromUrl = (url) => {
 
 const getContentTypeForFileType = (fileName) => {
     const extRegExp = /\.((?:.(?!\.))+$)/g;
-    const ext = extRegExp && extRegExp.length > 0 ? extRegExp[0] : '';
+    const mExt = fileName.match(extRegExp);
+    const ext = mExt && mExt.length > 0 ? mExt[0] : '';
 
     switch (ext) {
         case '.html':
@@ -86,21 +87,13 @@ const handlers = {
     fileHandler: (request, response) => {
         const fileName = getFileNameFromUrl(request.url);
         console.log(`fileHandler Attempting to serve: ${fileName}`);
-        const errHandler = (errorMessage) => {
+        try {
+            response.writeHead(200, getContentTypeForFileType(fileName));
+            fs.createReadStream(`${baseAssetPath}${fileName}`).pipe(response);
+        } catch (e) {
             console.error(`fileHandler Failed to serve : ${fileName}`, e);
             response.writeHead(500, { 'Content-Type': 'application/json' });
-            return response.end(errorMessage);
-        }
-        try {
-            const stream = fs.createReadStream(`${baseAssetPath}${fileName}`);
-            stream.on('error', (err) => {
-                errHandler(err)
-            })
-
-            response.writeHead(200, getContentTypeForFileType(fileName));
-            stream.pipe(response);
-        } catch (e) {
-            errHandler(util.format(e));
+            return response.end(JSON.stringify(e));
         }
     },
 
@@ -148,6 +141,26 @@ const handlers = {
         }
     },
 
+    aboveP25Threshold: (request, response) => {
+        console.log(`aboveP25Threshold Attempting to serve DATA: ${request.url}`);
+        try {
+            return readAboveThresholdP25Hours().then((data) => {
+                const headers = { ...baseHeaders };
+                headers['Content-Type'] = 'application/json';
+                response.writeHead(200, headers);
+                return response.end(JSON.stringify(data));
+            }).catch((err) => {
+                console.error(`aboveP25Threshold Failed to serve DATA: ${request.url}`, err);
+                response.writeHead(500, { 'Content-Type': 'application/json' });
+                return response.end(JSON.stringify(err));
+            });
+        } catch (e) {
+            console.error(`aboveP25Threshold Failed to serve DATA: ${request.url}`, e);
+            response.writeHead(500, { 'Content-Type': 'application/json' });
+            return response.end(JSON.stringify(err));
+        }
+    },
+
     realtimeDATA: (request, response) => {
         console.log(`realtimeDATA Attempting to serve DATA: ${request.url}`);
         try {
@@ -168,26 +181,6 @@ const handlers = {
         }
     },
 
-    aboveP25Threshold: (request, response) => {
-        console.log(`aboveP25Threshold Attempting to serve DATA: ${request.url}`);
-        try {
-            return readAboveThresholdP25Hours().then((data) => {
-                const headers = { ...baseHeaders };
-                headers['Content-Type'] = 'application/json';
-                response.writeHead(200, headers);
-                return response.end(JSON.stringify(data));
-            }).catch((err) => {
-                console.error(`aboveP25Threshold Failed to serve DATA: ${request.url}`, err);
-                response.writeHead(500, { 'Content-Type': 'application/json' });
-                return response.end(JSON.stringify(err));
-            });
-        } catch (e) {
-            console.error(`aboveP25Threshold Failed to serve DATA: ${request.url}`, e);
-            response.writeHead(500, { 'Content-Type': 'application/json' });
-            return response.end(JSON.stringify(err));
-        }
-    },
-    
     liveDATA: (request, response) => {
         console.log(`liveDATA Attempting to serve DATA: ${request.url}`);
         try {
@@ -228,6 +221,8 @@ const server = http.createServer(function (request, response) {
             return handlers.realtimeDATA(request, response);
         } else if (request.url.indexOf('/above_p25_threshold.json') !== -1) {
             return handlers.aboveP25Threshold(request, response);
+        } else if (request.url.indexOf('/coretemp') !== -1) {
+            return getCoreTemp(request, response);
         } else {
             return handlers.fileHandler(request, response);
         }

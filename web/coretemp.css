@@ -1,0 +1,27 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    color: #ffffff;
+    margin: 0;
+    padding: 0;
+    background-color: #000;
+    min-width: 100vw;
+    min-height: 100vh;
+    overflow: hidden;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center; /*centers items on the line (the x-axis by default)*/
+    align-items: center; /*centers items on the cross-axis (y by default)*/
+}
+
+.coretemp {
+    font-family: 'Bruno Ace', serif;
+    font-size: 9.2vmax;
+    color: chartreuse;
+}
