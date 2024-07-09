@@ -221,7 +221,7 @@ const server = http.createServer(function (request, response) {
             return handlers.realtimeDATA(request, response);
         } else if (request.url.indexOf('/above_p25_threshold.json') !== -1) {
             return handlers.aboveP25Threshold(request, response);
-        } else if (request.url.indexOf('/coretemp') !== -1) {
+        } else if (request.url.indexOf('/getcoretemp') !== -1) {
             return getCoreTemp(request, response);
         } else {
             return handlers.fileHandler(request, response);
