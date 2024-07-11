@@ -21,7 +21,8 @@ body {
 }
 
 .coretemp {
-    font-family: 'Bruno Ace', serif;
-    font-size: 15.2vmax;
+    font-family: 'Kode Mono', serif;
+    font-weight: 700;
+    font-size: 14.2vmax;
     color: chartreuse;
 }

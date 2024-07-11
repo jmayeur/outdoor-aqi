@@ -8,8 +8,11 @@ async function getCoreTempData(src) {
 
 async function displayCoreTemp() {
     const coreTemp = await getCoreTempData('http://192.168.119.137');
-    document.getElementById('coretemp').innerHTML = coreTemp.core_temp;
+    const color = tempToColor(parseFloat(coreTemp.core_temp.replace('\'', '')), -10, 65);
+    const el = document.getElementById('coretemp');
+    el.style.color = `rgb(${color.r}, ${color.g}, ${color.b})`;
+    el.innerHTML = (coreTemp.core_temp || '').replace('\'', '°');
 }
-
 displayCoreTemp();
 setInterval(displayCoreTemp, 5000);
+
