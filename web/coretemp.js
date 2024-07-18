@@ -14,5 +14,5 @@ async function displayCoreTemp() {
     el.innerHTML = (coreTemp.core_temp || '').replace('\'', '°');
 }
 displayCoreTemp();
-setInterval(displayCoreTemp, 5000);
+setInterval(displayCoreTemp, 30000);
 
