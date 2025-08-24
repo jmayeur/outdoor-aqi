@@ -10,18 +10,28 @@ body {
     margin: 0;
     padding: 0;
     background-color: #000;
-    min-width: 100vw;
-    min-height: 100vh;
 }
 
 .weather {
     font-family: 'Bruno Ace', serif;
+    height: 100vh;
+    overflow: hidden;
 }
 
 .leftside, .rightside {
     height: 50vh;
     width: 100%;
     max-width: 100%;
+}
+
+@supports (height: 100dvh) {
+    .weather {
+        height: 100dvh; /* Use dvh for dynamic viewport height */
+    }
+
+    .leftside, .rightside {
+        height: 50dvh;
+    }
 }
 
 .data {
