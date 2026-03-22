@@ -6,14 +6,32 @@ const prepareData = require('./preparedata');
 const { getAggData, getPeakData } = require('./historicaldata');
 const { readRealtimeData, readAboveThresholdP25Hours } = require('./db');
 const getCoreTemp = require('./getcoretemp');
+const ALLOWED_ORIGINS = new Set([
+    'http://192.168.119.137',
+    'http://192.168.119.220',
+]);
+
 const baseHeaders = {
-    'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
     'Access-Control-Allow-Headers': '*',
     'Access-Control-Max-Age': 86400,
     'Vary': 'Accept-Encoding, Origin',
     'Keep-Alive': 'timeout=2, max=100',
     'Connection': 'Keep-Alive'
+};
+
+/**
+ * Returns a headers object with the correct Access-Control-Allow-Origin value
+ * for the given request. Reflects the origin when it is on the allowlist;
+ * omits the header otherwise so the browser will block cross-origin access.
+ */
+const getCORSHeaders = (request) => {
+    const origin = request.headers['origin'];
+    const headers = { ...baseHeaders };
+    if (origin && ALLOWED_ORIGINS.has(origin)) {
+        headers['Access-Control-Allow-Origin'] = origin;
+    }
+    return headers;
 };
 
 const getDurationHours = (url) => {
@@ -103,7 +121,7 @@ const handlers = {
             const durationDays = getDurationDays(request.url);
             const fields = getFields(request.url);
             return getAggData(durationDays, fields).then((data) => {
-                const headers = { ...baseHeaders };
+                const headers = getCORSHeaders(request);
                 headers['Content-Type'] = 'application/json';
                 response.writeHead(200, headers);
                 return response.end(JSON.stringify(data));
@@ -125,7 +143,7 @@ const handlers = {
             const durationDays = getDurationDays(request.url);
             const fields = getFields(request.url);
             return getPeakData(durationDays, fields).then((data) => {
-                const headers = { ...baseHeaders };
+                const headers = getCORSHeaders(request);
                 headers['Content-Type'] = 'application/json';
                 response.writeHead(200, headers);
                 return response.end(JSON.stringify(data));
@@ -145,7 +163,7 @@ const handlers = {
         console.log(`aboveP25Threshold Attempting to serve DATA: ${request.url}`);
         try {
             return readAboveThresholdP25Hours().then((data) => {
-                const headers = { ...baseHeaders };
+                const headers = getCORSHeaders(request);
                 headers['Content-Type'] = 'application/json';
                 response.writeHead(200, headers);
                 return response.end(JSON.stringify(data));
@@ -165,7 +183,7 @@ const handlers = {
         console.log(`realtimeDATA Attempting to serve DATA: ${request.url}`);
         try {
             return readRealtimeData().then((data) => {
-                const headers = { ...baseHeaders };
+                const headers = getCORSHeaders(request);
                 headers['Content-Type'] = 'application/json';
                 response.writeHead(200, headers);
                 return response.end(JSON.stringify(data));
@@ -187,7 +205,7 @@ const handlers = {
             const durationHours = getDurationHours(request.url);
             const fields = getFields(request.url);
             return prepareData(durationHours, fields).then((data) => {
-                const headers = { ...baseHeaders };
+                const headers = getCORSHeaders(request);
                 headers['Content-Type'] = 'application/json';
                 response.writeHead(200, headers);
                 return response.end(JSON.stringify(data));
@@ -207,7 +225,7 @@ const handlers = {
 const server = http.createServer(function (request, response) {
     const { method } = request;
     if (method === 'OPTIONS') {
-        response.writeHead(200, baseHeaders);
+        response.writeHead(200, getCORSHeaders(request));
         return response.end();
     } else if (method === 'GET') {
 

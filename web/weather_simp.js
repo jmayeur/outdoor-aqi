@@ -272,6 +272,7 @@ const hideClock = () => {
         window.clearInterval(clockInterval);
         clockInterval = undefined;
     }
+    const clock = document.querySelector('.clock');
     clock.classList.add('noshow');
 };
 

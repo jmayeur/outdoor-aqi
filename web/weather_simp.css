@@ -162,15 +162,14 @@ body {
     text-orientation: sideways;
     font-size: 40vw;
     font-weight: 400;
-    padding-right: 20vw;
+    padding-right: 17vw;
     margin-top: -3vh;
     margin-bottom: -4vh;
 }
 
 .digit {
     display: inline-block;
-    width: 50vw;
-    text-align: center;
+    width: 40vw;
 }
 
 .hourlyforecast {

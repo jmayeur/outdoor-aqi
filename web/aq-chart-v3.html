@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Outdoor AQI – Mtn Ridge Ave</title>
+    <!--
+        Chart.js 4 + the date-fns adapter (required for time scales in v3/v4).
+        The bundle includes date-fns so no separate date-fns script is needed.
+    -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            background: #0d0d1a;
+            color: #cbd5e1;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            font-size: 14px;
+            margin: 0;
+            padding: 1rem 1rem 2rem;
+        }
+
+        /* ── Chart wrapper ──────────────────────────── */
+        .chart-wrapper {
+            position: relative;
+            width: 90vw;
+            max-width: 1400px;
+            margin: 0 auto;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #12121e;
+            border: 1px solid rgba(255,255,255,0.06);
+            transition: background 0.5s ease;
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.04),
+                        0 8px 32px rgba(0,0,0,0.5);
+        }
+
+        #line-chart {
+            display: block;
+            width: 100% !important;
+        }
+
+        /* ── AQI status badge (top-right corner of chart) */
+        #aqi-badge {
+            position: absolute;
+            top: 14px;
+            right: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 1px;
+            padding: 8px 14px;
+            border-radius: 8px;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            background: rgba(0,0,0,0.35);
+            border: 1px solid rgba(255,255,255,0.1);
+            line-height: 1.15;
+            pointer-events: none;
+            transition: color 0.4s ease;
+        }
+
+        #aqi-badge[hidden] { display: none; }
+
+        .aqi-value {
+            font-size: 1.9rem;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+            line-height: 1;
+        }
+
+        .aqi-label {
+            font-size: 0.65rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            opacity: 0.65;
+        }
+
+        .aqi-category {
+            font-size: 0.72rem;
+            font-weight: 500;
+            opacity: 0.9;
+        }
+
+        /* ── Controls ───────────────────────────────── */
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: center;
+            justify-content: center;
+            margin: 0.85rem auto;
+            max-width: 1400px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.45rem;
+        }
+
+        .control-group > label {
+            color: #64748b;
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        select {
+            background: #1e2235;
+            color: #e2e8f0;
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 0.4rem 1.8rem 0.4rem 0.65rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.88rem;
+            font-family: inherit;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2364748b'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.6rem center;
+            transition: border-color 0.15s;
+        }
+
+        select:focus { outline: none; border-color: #38bdf8; box-shadow: 0 0 0 2px rgba(56,189,248,0.2); }
+        select:hover  { border-color: rgba(255,255,255,0.22); }
+
+        /* ── Duration radio pills ───────────────────── */
+        #durations {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #durations label {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.3rem 0.75rem;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.82rem;
+            color: #94a3b8;
+            transition: background 0.12s, border-color 0.12s, color 0.12s;
+            user-select: none;
+        }
+
+        #durations label:hover {
+            background: rgba(56,189,248,0.08);
+            border-color: rgba(56,189,248,0.3);
+            color: #e2e8f0;
+        }
+
+        #durations label:has(input:checked) {
+            background: rgba(56,189,248,0.15);
+            border-color: #38bdf8;
+            color: #38bdf8;
+            font-weight: 500;
+        }
+
+        #durations input[type=radio] {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+            pointer-events: none;
+        }
+
+        /* ── Refresh toggle ─────────────────────────── */
+        .refresh-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 38px;
+            height: 21px;
+        }
+
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+
+        .toggle-slider {
+            position: absolute;
+            inset: 0;
+            background: #334155;
+            border-radius: 21px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            height: 15px;
+            width: 15px;
+            left: 3px;
+            top: 3px;
+            background: #fff;
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+
+        .toggle-switch input:checked + .toggle-slider { background: #0ea5e9; }
+        .toggle-switch input:checked + .toggle-slider::before { transform: translateX(17px); }
+        .toggle-switch input:disabled + .toggle-slider { opacity: 0.3; cursor: not-allowed; }
+
+        /* ── Countdown badge ────────────────────────── */
+        #countdown {
+            font-size: 0.8rem;
+            font-variant-numeric: tabular-nums;
+            min-width: 5rem;
+            text-align: center;
+            padding: 0.3rem 0.75rem;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            color: #94a3b8;
+            cursor: pointer;
+            transition: background 0.12s;
+            user-select: none;
+        }
+
+        #countdown:hover  { background: rgba(255,255,255,0.05); }
+        #countdown.paused { color: #475569; }
+    </style>
+</head>
+
+<body>
+    <div class="chart-wrapper">
+        <canvas id="line-chart"></canvas>
+        <div id="aqi-badge" hidden>
+            <span class="aqi-value"></span>
+            <span class="aqi-label">AQI · PM2.5</span>
+            <span class="aqi-category"></span>
+        </div>
+    </div>
+
+    <!-- Duration pills -->
+    <div class="controls">
+        <div id="durations" class="control-group"></div>
+    </div>
+
+    <!-- Selectors + refresh -->
+    <div class="controls">
+        <div class="control-group">
+            <label for="sensor-selector">Sensor</label>
+            <select id="sensor-selector">
+                <option value="outdoor">Outdoor</option>
+                <option value="indoor">Indoor</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="metrics-selector">Metrics</label>
+            <select id="metrics-selector">
+                <option value="aqi">Air Quality (AQ)</option>
+                <option value="weather">Weather</option>
+                <option value="gas">Gasses</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="charttype-selector">Chart Type</label>
+            <select id="charttype-selector">
+                <option value="current">Current Data</option>
+                <option value="historical">Historical Averages</option>
+                <option value="peak">Historical Peaks</option>
+            </select>
+        </div>
+
+        <div class="control-group refresh-group">
+            <label for="refresh-toggle">Auto-refresh</label>
+            <label class="toggle-switch">
+                <input type="checkbox" id="refresh-toggle">
+                <span class="toggle-slider"></span>
+            </label>
+            <div id="countdown" title="Click to toggle auto-refresh"></div>
+        </div>
+    </div>
+
+    <script src="./aq-chart-v3.js"></script>
+</body>
+</html>
