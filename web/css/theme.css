@@ -1,0 +1,89 @@
+/**
+ * theme.css — Shared dark design system
+ *
+ * Used by: aq-chart-v3.html, thresholds.html, aqi_trends.html
+ *
+ * Provides: box-sizing reset, body base, chart-wrapper card,
+ * controls row, control-group + label, and dark styled <select>.
+ * Pages link their own Google Fonts <link> tags; this file just
+ * relies on 'Inter' being already loaded.
+ */
+
+/* ── Reset ──────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+/* ── Body ───────────────────────────────────────── */
+body {
+    background: #0d0d1a;
+    color: #cbd5e1;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    margin: 0;
+    padding: 1rem 1rem 2rem;
+}
+
+/* ── Chart card wrapper ─────────────────────────── */
+.chart-wrapper {
+    width: 90vw;
+    max-width: 1400px;
+    margin: 0 auto;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #12121e;
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.04),
+                0 8px 32px rgba(0,0,0,0.5);
+}
+
+/* ── Controls row ───────────────────────────────── */
+.controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+    justify-content: center;
+    margin: 0.85rem auto;
+    max-width: 1400px;
+}
+
+/* ── Control group ──────────────────────────────── */
+.control-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.control-group > label {
+    color: #64748b;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* ── Dark styled <select> ───────────────────────── */
+select {
+    background: #1e2235;
+    color: #e2e8f0;
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 0.4rem 1.8rem 0.4rem 0.65rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.88rem;
+    font-family: inherit;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2364748b'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.6rem center;
+    transition: border-color 0.15s;
+}
+
+select:focus {
+    outline: none;
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 2px rgba(56,189,248,0.2);
+}
+
+select:hover { border-color: rgba(255,255,255,0.22); }

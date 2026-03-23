@@ -13,39 +13,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="./css/theme.css">
     <style>
-        *, *::before, *::after { box-sizing: border-box; }
+        /* ── Chart wrapper additions ────────────────── */
+        .chart-wrapper { position: relative; transition: background 0.5s ease; }
 
-        body {
-            background: #0d0d1a;
-            color: #cbd5e1;
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            font-size: 14px;
-            margin: 0;
-            padding: 1rem 1rem 2rem;
-        }
+        #line-chart { display: block; width: 100% !important; }
 
-        /* ── Chart wrapper ──────────────────────────── */
-        .chart-wrapper {
-            position: relative;
-            width: 90vw;
-            max-width: 1400px;
-            margin: 0 auto;
-            border-radius: 12px;
-            overflow: hidden;
-            background: #12121e;
-            border: 1px solid rgba(255,255,255,0.06);
-            transition: background 0.5s ease;
-            box-shadow: 0 0 0 1px rgba(255,255,255,0.04),
-                        0 8px 32px rgba(0,0,0,0.5);
-        }
-
-        #line-chart {
-            display: block;
-            width: 100% !important;
-        }
-
-        /* ── AQI status badge (top-right corner of chart) */
+        /* ── AQI status badge ───────────────────────── */
         #aqi-badge {
             position: absolute;
             top: 14px;
@@ -67,72 +42,9 @@
 
         #aqi-badge[hidden] { display: none; }
 
-        .aqi-value {
-            font-size: 1.9rem;
-            font-weight: 600;
-            letter-spacing: -0.5px;
-            line-height: 1;
-        }
-
-        .aqi-label {
-            font-size: 0.65rem;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            opacity: 0.65;
-        }
-
-        .aqi-category {
-            font-size: 0.72rem;
-            font-weight: 500;
-            opacity: 0.9;
-        }
-
-        /* ── Controls ───────────────────────────────── */
-        .controls {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.75rem;
-            align-items: center;
-            justify-content: center;
-            margin: 0.85rem auto;
-            max-width: 1400px;
-        }
-
-        .control-group {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 0.45rem;
-        }
-
-        .control-group > label {
-            color: #64748b;
-            font-size: 0.8rem;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        select {
-            background: #1e2235;
-            color: #e2e8f0;
-            border: 1px solid rgba(255,255,255,0.1);
-            padding: 0.4rem 1.8rem 0.4rem 0.65rem;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.88rem;
-            font-family: inherit;
-            appearance: none;
-            -webkit-appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2364748b'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 0.6rem center;
-            transition: border-color 0.15s;
-        }
-
-        select:focus { outline: none; border-color: #38bdf8; box-shadow: 0 0 0 2px rgba(56,189,248,0.2); }
-        select:hover  { border-color: rgba(255,255,255,0.22); }
+        .aqi-value   { font-size: 1.9rem; font-weight: 600; letter-spacing: -0.5px; line-height: 1; }
+        .aqi-label   { font-size: 0.65rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.65; }
+        .aqi-category{ font-size: 0.72rem; font-weight: 500; opacity: 0.9; }
 
         /* ── Duration radio pills ───────────────────── */
         #durations {

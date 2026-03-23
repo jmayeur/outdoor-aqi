@@ -7,16 +7,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./css/theme.css">
     <style>
-        *, *::before, *::after { box-sizing: border-box; }
-
-        body {
-            background: #0d0d1a;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            font-family: 'Inter', system-ui, sans-serif;
-        }
+        /* ── Mobile fullscreen overrides ───────────── */
+        body { padding: 0; overflow: hidden; }
 
         .container {
             overflow: hidden;
@@ -26,12 +20,7 @@
             justify-content: center;
         }
 
-        #canvas {
-            background: #0d0d1a;
-            display: block;
-            width: 480px;
-            height: 800px;
-        }
+        #canvas { background: #0d0d1a; display: block; width: 480px; height: 800px; }
 
         @media screen and (max-width: 500px) {
             #canvas { width: 440px; }
@@ -45,17 +34,12 @@
     </div>
 
     <script src="./aq_trends_hr.js"></script>
+    <script src="./js/sensor-state.js"></script>
     <script>
-        const params = new URLSearchParams(window.location.search);
-        const rawSensor = (params.get('sensor') || 'outdoor').toLowerCase();
-        const sensor = rawSensor === 'indoor' ? 'indoor' : 'outdoor';
-        const source = sensor === 'indoor' ? 'Indoor' : 'Outdoor';
-
-        // Normalise URL without adding a history entry
-        history.replaceState({ sensor }, '', `${window.location.pathname}?sensor=${sensor}`);
-        document.title = `AQI Trends – ${source}`;
-
-        showTrendChart(source);
+        const sensor = SensorState.read();
+        SensorState.write(sensor, false);
+        document.title = `AQI Trends \u2013 ${SensorState.label(sensor)}`;
+        showTrendChart(SensorState.label(sensor));
     </script>
 </body>
 </html>

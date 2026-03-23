@@ -164,11 +164,38 @@ const trendsChartInit = () => {
 
     const drawText = (ctx, x, y, text) => {
         const dftFillStyle = ctx.fillStyle;
-        ctx.fillStyle = '#64748b';
-        ctx.font = "500 10px 'Inter', monospace";
-        ctx.fillText(text, x + 4, y - 20);
+        const dftStrokeStyle = ctx.strokeStyle;
+        const dftLineWidth = ctx.lineWidth;
+        const dftFont = ctx.font;
+        const dftBaseline = ctx.textBaseline;
+
+        const labelX = x + 6;
+        const labelY = y - 20;
+
+        ctx.font = "600 11px 'Inter', system-ui, sans-serif";
+        ctx.textBaseline = 'middle';
+
+        const textWidth = ctx.measureText(text).width;
+        const padX = 2;
+        const chipHeight = 13;
+        const chipY = labelY - (chipHeight / 2);
+
+        // Draw a small high-contrast backing chip behind the date label.
+        ctx.fillStyle = 'rgba(2, 6, 23, 0.88)';
+        ctx.fillRect(labelX - padX, chipY, textWidth + (padX * 2), chipHeight);
+        ctx.strokeStyle = 'rgba(248, 250, 252, 0.22)';
+        ctx.lineWidth = 0.8;
+        ctx.strokeRect(labelX - padX, chipY, textWidth + (padX * 2), chipHeight);
+
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillText(text, labelX, labelY);
+
         ctx.fillStyle = dftFillStyle;
-    }
+        ctx.strokeStyle = dftStrokeStyle;
+        ctx.lineWidth = dftLineWidth;
+        ctx.font = dftFont;
+        ctx.textBaseline = dftBaseline;
+    };
 
     const drawData = (ctx, data) => {
         const keys = Object.keys(data).sort();
