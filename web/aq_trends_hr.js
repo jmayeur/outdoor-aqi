@@ -4,13 +4,13 @@ const trendsChartInit = () => {
     const OutdoorSrc = 'http://192.168.119.137';
 
     const colors = {
-        green: 'rgba(0, 128, 0, 0.65)',         //0-50
-        yellow: 'rgba(255, 255, 0, 0.65)',      //51-100
-        orange: 'rgba(255, 126, 0, 0.65)',      //101-150
-        red: 'rgba(255, 0, 0, 0.65)',           //151-200
-        purple: 'rgba(143, 63, 151, 0.65)',     //201-300
-        brown: 'rgba(128, 0, 35, 0.65)',        //301-500
-        burntumber: 'rgba(128, 80, 0, 0.65)',   //501+
+        green:  'rgba( 52, 211, 153, 0.90)',  // Good               0–50
+        yellow: 'rgba(251, 191,  36, 0.90)',  // Moderate          51–100
+        orange: 'rgba(251, 146,  60, 0.90)',  // Unhealthy for SG 101–150
+        red:    'rgba(248, 113, 113, 0.90)',  // Unhealthy        151–200
+        purple: 'rgba(192, 132, 252, 0.90)',  // Hazardous        201–300
+        pink:   'rgba(244, 114, 182, 0.90)',  // Very Hazardous   301–500
+        slate:  'rgba(148, 163, 184, 0.90)',  // Out of Range      501+
     };
 
     const colorMap = {
@@ -19,8 +19,8 @@ const trendsChartInit = () => {
         "Unhealthy for Sensitive Groups": colors.orange,
         Unhealthy: colors.red,
         Hazardous: colors.purple,
-        "Very Hazardous": colors.brown,
-        "Out of Range": colors.burntumber,
+        "Very Hazardous": colors.pink,
+        "Out of Range": colors.slate,
     };
 
     const boxWidth = 420;
@@ -132,7 +132,7 @@ const trendsChartInit = () => {
 
     const drawBoardBackground = (ctx) => {
         const dftFillStyle = ctx.fillStyle;
-        ctx.fillStyle = "white";
+        ctx.fillStyle = '#12121e';
         ctx.fillRect(0.5 + widthPadding, 0.5 + heightPadding, boxWidth, boxHeight);
         ctx.fillStyle = dftFillStyle;
     };
@@ -148,7 +148,7 @@ const trendsChartInit = () => {
             ctx.moveTo(widthPadding, 0.5 + y + heightPadding);
             ctx.lineTo(boxWidth + widthPadding, 0.5 + y + heightPadding);
         }
-        ctx.strokeStyle = "black";
+        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
         ctx.stroke();
     };
 
@@ -164,13 +164,10 @@ const trendsChartInit = () => {
 
     const drawText = (ctx, x, y, text) => {
         const dftFillStyle = ctx.fillStyle;
-        ctx.fillStyle = "raspberry";
-        ctx.font = "15px monospace";
-        ctx.fontWeight = "bold";
-        ctx.fillText(text, x + 7, y - 24);
-        ctx.filter = "";
+        ctx.fillStyle = '#64748b';
+        ctx.font = "500 10px 'Inter', monospace";
+        ctx.fillText(text, x + 4, y - 20);
         ctx.fillStyle = dftFillStyle;
-
     }
 
     const drawData = (ctx, data) => {
@@ -197,7 +194,17 @@ const trendsChartInit = () => {
     };
 
     window.showTrendChart = (source) => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         drawBoard(ctx);
+        // Tiny source label in the left-margin strip
+        ctx.font = "500 9px 'Inter', monospace";
+        ctx.fillStyle = '#475569';
+        ctx.save();
+        ctx.translate(12, canvas.height / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.textAlign = 'center';
+        ctx.fillText(source.toUpperCase(), 0, 0);
+        ctx.restore();
         const src = source === 'Indoor' ? IndoorSrc : OutdoorSrc;
         getData(src).then(raw => {
             const readyData = processRaw(raw);
