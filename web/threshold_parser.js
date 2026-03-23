@@ -4,13 +4,12 @@ const thresholdChartInit = () => {
     const OutdoorSrc = 'http://192.168.119.137';
 
     const colors = {
-        green: 'rgba(0, 128, 0, 0.65)',         //0-50
-        yellow: 'rgba(255, 255, 0, 0.65)',      //51-100
-        orange: 'rgba(255, 126, 0, 0.65)',      //101-150
-        red: 'rgba(255, 0, 0, 0.65)',           //151-200
-        purple: 'rgba(143, 63, 151, 0.65)',     //201-300
-        brown: 'rgba(128, 0, 35, 0.65)',        //301-500
-        burntumber: 'rgba(128, 80, 0, 0.65)',   //501+
+        yellow:     'rgba(251, 191,  36, 0.85)',  // Moderate           51–100
+        orange:     'rgba(251, 146,  60, 0.85)',  // Unhealthy for SG  101–150
+        red:        'rgba(248, 113, 113, 0.85)',  // Unhealthy         151–200
+        purple:     'rgba(192, 132, 252, 0.85)',  // Very Unhealthy    201–300
+        pink:       'rgba(244, 114, 182, 0.85)',  // Hazardous         301–500
+        slate:      'rgba(148, 163, 184, 0.85)',  // Out of Range       501+
     };
 
     const aqiEquation = (AQIHigh, AQILow, concHigh, concLow, concentration) => {
@@ -137,41 +136,19 @@ const thresholdChartInit = () => {
 
     const shapeData = (dataIn) => {
         const labels = Object.keys(dataIn);
+        const countByRating = (rating) =>
+            labels.map(day => (dataIn[day] || []).filter(v => v.rating === rating).length);
 
         return {
             labels,
             datasets: [
-                {
-                    label: 'Moderate',
-                    data: Object.values(dataIn).reduce((acc, r) => { return acc.concat(r.filter(v => v.rating === 'Moderate')); }, []).reduce((acc, v) => { if (!acc[v.day]) { acc[v.day] = 0 } acc[v.day] += 1; return acc; }, {}),
-                    backgroundColor: colors.yellow,
-                },
-                {
-                    label: 'Unhealthy for Sensitive Groups',
-                    data: Object.values(dataIn).reduce((acc, r) => { return acc.concat(r.filter(v => v.rating === 'Unhealthy for Sensitive Groups')); }, []).reduce((acc, v) => { if (!acc[v.day]) { acc[v.day] = 0 } acc[v.day] += 1; return acc; }, {}),
-                    backgroundColor: colors.orange,
-                },
-                {
-                    label: 'Unhealthy',
-                    data: Object.values(dataIn).reduce((acc, r) => { return acc.concat(r.filter(v => v.rating === 'Unhealthy')); }, []).reduce((acc, v) => { if (!acc[v.day]) { acc[v.day] = 0 } acc[v.day] += 1; return acc; }, {}),
-                    backgroundColor: colors.red,
-                },
-                {
-                    label: 'Hazardous',
-                    data: Object.values(dataIn).reduce((acc, r) => { return acc.concat(r.filter(v => v.rating === 'Hazardous')); }, []).reduce((acc, v) => { if (!acc[v.day]) { acc[v.day] = 0 } acc[v.day] += 1; return acc; }, {}),
-                    backgroundColor: colors.purple,
-                },
-                {
-                    label: 'Very Hazardous',
-                    data: Object.values(dataIn).reduce((acc, r) => { return acc.concat(r.filter(v => v.rating === 'Very Hazardous')); }, []).reduce((acc, v) => { if (!acc[v.day]) { acc[v.day] = 0 } acc[v.day] += 1; return acc; }, {}),
-                    backgroundColor: colors.brown,
-                },
-                {
-                    label: 'Out of Range',
-                    data: Object.values(dataIn).reduce((acc, r) => { return acc.concat(r.filter(v => v.rating === 'Out of Range')); }, []).reduce((acc, v) => { if (!acc[v.day]) { acc[v.day] = 0 } acc[v.day] += 1; return acc; }, {}),
-                    backgroundColor: colors.burntumber,
-                },
-            ]
+                { label: 'Moderate',                       data: countByRating('Moderate'),                       backgroundColor: colors.yellow },
+                { label: 'Unhealthy for Sensitive Groups', data: countByRating('Unhealthy for Sensitive Groups'), backgroundColor: colors.orange },
+                { label: 'Unhealthy',                      data: countByRating('Unhealthy'),                      backgroundColor: colors.red    },
+                { label: 'Hazardous',                      data: countByRating('Hazardous'),                      backgroundColor: colors.purple },
+                { label: 'Very Hazardous',                 data: countByRating('Very Hazardous'),                 backgroundColor: colors.pink   },
+                { label: 'Out of Range',                   data: countByRating('Out of Range'),                   backgroundColor: colors.slate  },
+            ],
         };
     };
 
@@ -196,33 +173,71 @@ const thresholdChartInit = () => {
             if (stackedBar) {
                 updateChart(stackedBar, data, source);
             } else {
-                Chart.defaults.font.size = 16;
-                Chart.defaults.font.family = "'Helvetica Neue', 'Helvetica', 'Arial', sans-serif";
-                Chart.defaults.font.weight = "bolder";
-                Chart.defaults.color = "#000000";
+                const FONT = "'Inter', system-ui, sans-serif";
+                const TICK = '#64748b';
                 const config = {
                     type: 'bar',
                     data,
                     options: {
+                        responsive: true,
+                        animation: { duration: 400, easing: 'easeInOutQuart' },
                         plugins: {
                             title: {
                                 display: true,
-                                text: `${source} Last 90 Days Hours Above Good AQI`
+                                text: `${source} — Last 90 Days: Hours Above Good AQI`,
+                                color: '#e2e8f0',
+                                font: { size: 14, weight: '500', family: FONT },
+                                padding: { top: 18, bottom: 4 },
+                            },
+                            legend: {
+                                labels: {
+                                    color: '#94a3b8',
+                                    font: { size: 12, family: FONT },
+                                    usePointStyle: true,
+                                    pointStyleWidth: 8,
+                                    boxHeight: 6,
+                                    padding: 16,
+                                },
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(15,23,42,0.92)',
+                                titleColor: '#64748b',
+                                bodyColor: '#e2e8f0',
+                                borderColor: 'rgba(255,255,255,0.08)',
+                                borderWidth: 1,
+                                padding: 12,
+                                cornerRadius: 8,
+                                titleFont: { size: 11, family: FONT },
+                                bodyFont:  { size: 13, weight: '500', family: FONT },
                             },
                         },
-                        responsive: true,
                         scales: {
                             x: {
                                 stacked: true,
+                                ticks: {
+                                    color: TICK,
+                                    maxRotation: 45,
+                                    font: { size: 10, family: FONT },
+                                    maxTicksLimit: 15,
+                                },
+                                grid:   { color: 'rgba(255,255,255,0.04)' },
+                                border: { color: 'rgba(255,255,255,0.08)' },
                             },
                             y: {
+                                stacked: true,
                                 min: 0,
                                 max: 24,
-                                stacked: true,
-                                ticks: { stepSize: 4 }
-                            }
-                        }
-                    }
+                                ticks: {
+                                    color: TICK,
+                                    stepSize: 4,
+                                    font: { size: 11, family: FONT },
+                                    padding: 8,
+                                },
+                                grid:   { color: 'rgba(255,255,255,0.04)' },
+                                border: { color: 'transparent' },
+                            },
+                        },
+                    },
                 };
 
                 stackedBar = new Chart(document.getElementById('bar-chart'), config);
