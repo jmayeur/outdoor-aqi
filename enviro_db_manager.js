@@ -1,5 +1,8 @@
 const sqlite3 = require('sqlite3');
 
+const AGG_WINDOW_SECS   = 24 * 60 * 60;       // aggregate data older than 24 h
+const PURGE_WINDOW_SECS = 30 * 24 * 60 * 60;  // delete minute-level data older than 30 days
+
 class EnviroDBManager {
 
     constructor() {
@@ -58,10 +61,62 @@ class EnviroDBManager {
         });
     }
 
-    readOldData(olderThan) {
-        const params = [olderThan];
-        const query = 'SELECT * FROM envdata WHERE time <= ?';
-        return this._readData(query, params);
+    // ── Aggregation checkpoint ────────────────────────────────────────────────
+    //
+    // agg_meta is a lightweight key/value table that persists the high-water
+    // mark of the last successful aggregation run.  Creating it with
+    // IF NOT EXISTS makes the first run self-bootstrapping — no migration step.
+
+    ensureMetaTable() {
+        return this._execQuery(
+            `CREATE TABLE IF NOT EXISTS agg_meta (
+                key   TEXT PRIMARY KEY,
+                value TEXT NOT NULL
+            )`,
+            []
+        );
+    }
+
+    /** Returns the Unix timestamp (seconds) of the last successful aggregation,
+     *  or 0 on the very first run so all data older than aggCutoff is processed. */
+    readLastAggCheckpoint() {
+        return this._readData(
+            `SELECT value FROM agg_meta WHERE key = 'last_agg_checkpoint'`,
+            []
+        ).then(result => {
+            if (result.data && result.data.length > 0) {
+                return parseInt(result.data[0].value, 10);
+            }
+            return 0;
+        });
+    }
+
+    /** Persists the aggregation high-water mark.  Called only after both
+     *  updateFinalAggs and updateHourPeaks complete successfully. */
+    writeLastAggCheckpoint(ts) {
+        return this._execQuery(
+            `INSERT INTO agg_meta (key, value) VALUES ('last_agg_checkpoint', ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+            [ts.toString()]
+        );
+    }
+
+    // ── Data reads ────────────────────────────────────────────────────────────
+
+    /**
+     * Returns envdata rows that fall in the half-open interval (newerThan, olderThan].
+     *
+     *  newerThan  — the last aggregation checkpoint (skip already-processed rows)
+     *  olderThan  — now minus 24 h (skip the most-recent hour so partial hours
+     *               are never aggregated mid-fill)
+     *
+     * Rows are ordered by time so bucketData produces chronologically correct buckets.
+     */
+    readUnprocessedData(newerThan, olderThan) {
+        return this._readData(
+            'SELECT * FROM envdata WHERE time > ? AND time <= ? ORDER BY time',
+            [newerThan, olderThan]
+        );
     }
 
     bucketData(rows) {
@@ -152,6 +207,13 @@ class EnviroDBManager {
         });
     }
 
+    /**
+     * Deletes envdata rows older than the given timestamp.
+     *
+     * Previously called with a 24-hour cutoff (immediately after aggregation).
+     * Now called with a 30-day cutoff so minute-level data is retained long
+     * enough for any failed daily scoring job to be replayed from raw readings.
+     */
     purgeOldData(olderThan) {
         const query = 'DELETE FROM envdata WHERE time <= ?';
         const params = [olderThan];
@@ -189,17 +251,17 @@ class EnviroDBManager {
                         finalAggregate.P25 = calculateCombined(finalAggregate, existingAggregate, 'P25', 'P25');
                         finalAggregate.ENTRIES = existingAggregate.ENTRIES + finalAggregate.ENTRIES;
 
-                        query = `UPDATE agg_envdata 
-                        SET 
-                        output_temp = $raw_temp, 
-                        output_humidity = $raw_humidity, 
-                        output_bar = $raw_bar, 
-                        oxi = $oxi, 
-                        red = $red, 
-                        nh3 = $nh3, 
-                        p1 = $p1, 
-                        P10 = $P10, 
-                        P25 = $P25, 
+                        query = `UPDATE agg_envdata
+                        SET
+                        output_temp = $raw_temp,
+                        output_humidity = $raw_humidity,
+                        output_bar = $raw_bar,
+                        oxi = $oxi,
+                        red = $red,
+                        nh3 = $nh3,
+                        p1 = $p1,
+                        P10 = $P10,
+                        P25 = $P25,
                         ENTRIES = $ENTRIES WHERE hour = $hour;`;
 
                     } else {
@@ -210,7 +272,6 @@ class EnviroDBManager {
                     this._execQuery(query, this.mapDataToParams(finalAggregate)).then(r => {
                         success.push(r)
                         if (success.length === aggregates.length) {
-                            console.log('success', success);
                             return resolve(true);
                         }
                     }).catch(err => reject(err));
@@ -243,16 +304,16 @@ class EnviroDBManager {
                             finalHourPeak[key] = finalHourPeak[key] >= existingHourPeak[existing_key] ? finalHourPeak[key] : existingHourPeak[existing_key];
                         });
 
-                        query = `UPDATE hourly_peak_envdata 
-                        SET 
-                        output_temp = $raw_temp, 
-                        output_humidity = $raw_humidity, 
-                        output_bar = $raw_bar, 
-                        oxi = $oxi, 
-                        red = $red, 
-                        nh3 = $nh3, 
-                        p1 = $p1, 
-                        P10 = $P10, 
+                        query = `UPDATE hourly_peak_envdata
+                        SET
+                        output_temp = $raw_temp,
+                        output_humidity = $raw_humidity,
+                        output_bar = $raw_bar,
+                        oxi = $oxi,
+                        red = $red,
+                        nh3 = $nh3,
+                        p1 = $p1,
+                        P10 = $P10,
                         P25 = $P25 WHERE hour = $hour;`;
 
                     } else {
@@ -262,7 +323,6 @@ class EnviroDBManager {
                     this._execQuery(query, this.mapDataToParams(finalHourPeak)).then(r => {
                         success.push(r)
                         if (success.length === hourPeaks.length) {
-                            console.log('success', success);
                             return resolve(true);
                         }
                     }).catch(err => reject(err));
@@ -277,37 +337,57 @@ class EnviroDBManager {
 const enviroDBManager = new EnviroDBManager();
 
 function main() {
-    const olderThan = Math.round(Date.now() / 1000, 0) - (24 * 60 * 60);
-    let bucketedHourMap;
-    return enviroDBManager.openDB('environment').then(out => {
-        console.log(out);
-        console.log(`Reading data older than ${olderThan}`);
-        return enviroDBManager.readOldData(olderThan).then(result => {
-            console.log(`Read old data ${result.data.length}`);
-            bucketedHourMap = enviroDBManager.bucketData(result.data);
-            console.log('bucketedHourMap built');
-            const localAggregates = enviroDBManager.createTempAggs(bucketedHourMap);
-            console.log('prepped aggs built');
-            return enviroDBManager.updateFinalAggs(localAggregates).then(aggregated => {
-                if (aggregated) {
-                    console.log(`Aggs written to DB ${aggregated}`);
-                    const localHourlyPeaks = enviroDBManager.createTempHourlyPeaks(bucketedHourMap);
-                    return enviroDBManager.updateHourPeaks(localHourlyPeaks).then(peakssaved => {
-                        if (peakssaved) {
-                            console.log(`Houly Peaks written to DB ${peakssaved}`);
-                            return enviroDBManager.purgeOldData(olderThan).then(result => {
-                                console.log('Run envdata pruned');
-                                return enviroDBManager.close();
-                            });
-                        }
-                    });
-                }
-            });
-        }).catch(err => console.error(err));
-    }).catch(e => console.error(e));
+    const now         = Math.round(Date.now() / 1000);
+    const aggCutoff   = now - AGG_WINDOW_SECS;    // upper bound: only aggregate complete hours
+    const purgeCutoff = now - PURGE_WINDOW_SECS;  // lower bound: keep 30 days of minute data
+
+    return enviroDBManager.openDB('environment')
+        .then(msg => {
+            console.log(msg);
+            return enviroDBManager.ensureMetaTable();
+        })
+        .then(() => enviroDBManager.readLastAggCheckpoint())
+        .then(checkpoint => {
+            console.log(`Aggregation window: ${checkpoint} → ${aggCutoff}`);
+            return enviroDBManager.readUnprocessedData(checkpoint, aggCutoff);
+        })
+        .then(result => {
+            console.log(`Found ${result.data.length} unprocessed rows`);
+            if (result.data.length === 0) {
+                return;  // nothing new to aggregate; fall through to purge
+            }
+
+            const bucketedHourMap  = enviroDBManager.bucketData(result.data);
+            const localAggregates  = enviroDBManager.createTempAggs(bucketedHourMap);
+            const localHourlyPeaks = enviroDBManager.createTempHourlyPeaks(bucketedHourMap);
+
+            return enviroDBManager.updateFinalAggs(localAggregates)
+                .then(() => {
+                    console.log('Aggregates written to DB');
+                    return enviroDBManager.updateHourPeaks(localHourlyPeaks);
+                })
+                .then(() => {
+                    console.log('Hourly peaks written to DB');
+                    // Only advance the checkpoint after both writes succeed.
+                    // If either throws, this line is skipped and the next tick retries.
+                    return enviroDBManager.writeLastAggCheckpoint(aggCutoff);
+                })
+                .then(() => console.log(`Checkpoint advanced to ${aggCutoff}`));
+        })
+        .then(() => {
+            console.log(`Purging envdata older than 30 days (cutoff: ${purgeCutoff})`);
+            return enviroDBManager.purgeOldData(purgeCutoff);
+        })
+        .then(() => {
+            console.log('Purge complete');
+            enviroDBManager.close();
+        })
+        .catch(err => {
+            console.error('Error in main():', err);
+            enviroDBManager.close();
+        });
 }
 
 setInterval(() => {
     main();
 }, 10 * 60 * 1000); // Every 10 minutes
-
