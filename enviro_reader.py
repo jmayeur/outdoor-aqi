@@ -29,6 +29,9 @@ nh3_temp_comp_factor = -0.02695
 nh3_hum_comp_factor = 0.0094
 nh3_bar_comp_factor = 0.003254
 
+# Station elevation for sea-level pressure correction (730 ft)
+station_altitude_m = 222.5
+
 def read_raw_gas():
     gas_data = gas.read_all()
     raw_red_rs = round(gas_data.reducing, 0)
@@ -195,9 +198,11 @@ class EnviroReader:
         humidity = self.bme280.relative_humidity
         adjusted_temp_celcius = adjusted_temperature(temp_celcius)
         _adjusted_humidity = adjusted_humidity(humidity)
-        altitude = self.bme280.altitude
+        altitude = station_altitude_m
         pressure = self.bme280.pressure
-        _adjusted_pressure = adjusted_pressure(pressure, altitude, temp_celcius)
+        # Use the real station elevation and ambient (corrected) temp; bme280.altitude is
+        # derived from the measured pressure, so correcting with it just undoes itself
+        _adjusted_pressure = adjusted_pressure(pressure, altitude, adjusted_temp_celcius)
         
         red_in_ppm, oxi_in_ppm, nh3_in_ppm, comp_red_rs, comp_oxi_rs, comp_nh3_rs, raw_red_rs, raw_oxi_rs, raw_nh3_rs = read_gas_in_ppm(adjusted_temp_celcius, _adjusted_humidity, _adjusted_pressure, temp_celcius, humidity, pressure, True)
 
