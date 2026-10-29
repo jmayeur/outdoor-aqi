@@ -2,18 +2,21 @@
 # collector and recompute_history.py share exactly the same formulas
 import math
 
-temp_offset = 0
-comp_temp_cub_a = 0.00033
-comp_temp_cub_b = -0.03129
-comp_temp_cub_c = 1.8736
-comp_temp_cub_d = -14.82131
-comp_temp_cub_d = comp_temp_cub_d + temp_offset
+# Temperature calibration, fitted against KPDX hourly obs (37k hours, 2022-07 to 2026-10):
+# PDX = 0.963 * raw - 1.22 C, residual sd 1.65 C. The old cubic subtracted ~8 C and read
+# ~6.7 C colder than PDX; the sensor itself only runs ~1.8 C warm.
+comp_temp_slope = 0.963
+comp_temp_intercept = -1.22
+# Then cool by the standard lapse rate for the station sitting above PDX (9 m)
+pdx_altitude_m = 9.4
+lapse_rate_c_per_m = 0.0065
 # Magnus coefficients (Sonntag 1990) for dew point based humidity correction
 magnus_b = 17.62
 magnus_c = 243.12
 
 # Station elevation for sea-level pressure correction (730 ft)
 station_altitude_m = 222.5
+temp_lapse_adjustment = lapse_rate_c_per_m * (station_altitude_m - pdx_altitude_m)
 
 def linear (AQIHigh, AQILow, concHigh, concLow, concentration):
     return round(((concentration - concLow) / (concHigh - concLow)) * (AQIHigh - AQILow) + AQILow)
@@ -61,9 +64,7 @@ def fahrenheit_to_celsius(deg_fahrenheit):
     return (deg_fahrenheit - 32) * 5 / 9
 
 def adjusted_temperature(temp):
-    #comp_temp = comp_temp_slope * raw_temp + comp_temp_intercept
-    return (comp_temp_cub_a * math.pow(temp, 3) + comp_temp_cub_b * math.pow(temp, 2) +
-                 comp_temp_cub_c * temp + comp_temp_cub_d)
+    return comp_temp_slope * temp + comp_temp_intercept - temp_lapse_adjustment
     
 def adjusted_humidity(humidity, raw_temp, adjusted_temp):
     # The sensor sits in air warmed by the Pi but with the same water content as outside,
