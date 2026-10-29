@@ -283,8 +283,9 @@ const forecast = {
                 temperature,
                 temperatureTrend,
                 shortForecast,
-                chanceOfRain: probabilityOfPrecipitation.value,
-                humidity: relativeHumidity.value,
+                // NWS dropped relativeHumidity from the daily forecast; guard both value fields
+                chanceOfRain: probabilityOfPrecipitation && probabilityOfPrecipitation.value,
+                humidity: relativeHumidity && relativeHumidity.value,
                 icon
             };
         },
