@@ -29,7 +29,7 @@ def main():
   while samplingEnbled:
     try:
 
-        if ticks == 30:
+        if ticks == 10:
             print('Recalibrating')
             enviroReader.recalibrate()
             ticks = 0

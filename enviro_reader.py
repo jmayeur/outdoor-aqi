@@ -2,6 +2,7 @@
 from pms5003 import PMS5003
 import board
 import math
+import types
 from adafruit_bme280 import basic as adafruit_bme280
 from mics6814 import MICS6814
 gas = MICS6814()
@@ -158,14 +159,18 @@ def comp_gas(gas_calib_temp, gas_calib_hum, gas_calib_bar, raw_temp, raw_hum, ra
 class EnviroReader:
 
     def __init__(self):
-        
-        # BME280 Temp / hPa sensor
-        # Create sensor object, using the board's default I2C bus.
-        i2c = board.I2C()   # uses board.SCL and board.SDA
-        self.bme280 = adafruit_bme280.Adafruit_BME280_I2C(i2c)
-        # change this to match the location's pressure (hPa) at sea level
-        self.bme280.sea_level_pressure = 1013.25
-        
+        try:
+            # BME280 Temp / hPa sensor
+            # Create sensor object, using the board's default I2C bus.
+            i2c = board.I2C()   # uses board.SCL and board.SDA
+            self.bme280 = adafruit_bme280.Adafruit_BME280_I2C(i2c)
+            # change this to match the location's pressure (hPa) at sea level
+            self.bme280.sea_level_pressure = 1013.25
+
+        except ValueError as e:
+            print(f"Caught ValueError: {e}")
+            self.bme280 = types.SimpleNamespace(temperature=0, relative_humidity=0, altitude=0, pressure=0)
+
         # Configure the PMS5003
         self.pms5003 = PMS5003(
             device='/dev/ttyAMA0',

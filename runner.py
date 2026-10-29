@@ -8,17 +8,12 @@ dbManager = db_manager.DbManager()
 start_time = time.time()
 # sleep seconds
 sleep = 60
-ticks = 0
- 
+
 try:
     while True:
-        if ticks == 5:
-            print('Recalibrating')
-            enviroReader.recalibrate()
-            ticks = 0
 
         print("Reading Data")
-        ticks = ticks + 1
+        # ticks = ticks + 1
         enviro_data = enviroReader.read_data();
         run_time = round((time.time() - start_time), 0)
 
@@ -31,7 +26,8 @@ try:
 
 except ChecksumMismatchError as cme: 
     print('Checksum Error, trying recalibration', cme)
-    ticks = 5
+    print('Recalibrating')
+    enviroReader.recalibrate()
 
 except KeyboardInterrupt:
     pass
