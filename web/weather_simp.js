@@ -286,7 +286,7 @@ const viewStates = [
     },
     {
         id: 'clock',
-        isActive: false,
+        isActive: true,
         isVisible: false,
         showFn: showClock,
         hideFn: hideClock,

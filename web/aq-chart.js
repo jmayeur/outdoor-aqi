@@ -263,6 +263,9 @@ const AQIPM25 = (concentration) => {
     if (c >= 0 && c < 12.1) {
         AQI = linear(50, 0, 12, 0, c);
     }
+    else if (c >= 12.1 && c < 35.5) {
+        AQI = linear(100, 51, 35.4, 12.1, c);
+    }
     else if (c >= 35.5 && c < 55.5) {
         AQI = linear(150, 101, 55.4, 35.5, c);
     }
