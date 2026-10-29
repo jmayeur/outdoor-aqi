@@ -61,16 +61,15 @@
         </div>
         <div class="col-md-6 g-0 meridiem">AM</div>
     </div>
-    <div class="row g-0 forecast noshow">
+    <div class="row g-0 forecast hourlyforecast noshow">
     </div>
     <script src="./suncalc.js"></script>
     <script src="./forecast.js"></script>
     <script src="./weather_simp.js"></script>
     <script>
-        //updateData();
-        //setInterval(switchViews, 20000);
-        //showForecast();
-        showClock();
+        // Rotate weather -> clock -> forecast every 20s; weather refreshes its data each time it's shown
+        showWeather();
+        setInterval(switchViews, 20000);
     </script>
 </body>
 

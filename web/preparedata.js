@@ -12,9 +12,9 @@ const prepareData = async (durationHours, fields) => {
 
     const processedData =  rawData.reduce((c, v) => {
         const time = new Date(v.time * 1000);
-        if (flags.output_temp) { c.output_temp.push({time, value: v.raw_temp}); }
-        if (flags.output_humidity) { c.output_humidity.push({time, value: v.raw_humidity}); }
-        if (flags.output_bar) { c.output_bar.push({time, value: v.raw_bar}); }
+        if (flags.output_temp) { c.output_temp.push({time, value: v.output_temp}); }
+        if (flags.output_humidity) { c.output_humidity.push({time, value: v.output_humidity}); }
+        if (flags.output_bar) { c.output_bar.push({time, value: v.output_bar}); }
         if (flags.oxi) { c.oxi.push({time, value: v.oxi}); }
         if (flags.red) { c.red.push({time, value: v.red}); }
         if (flags.nh3) { c.nh3.push({time, value: v.nh3}); }

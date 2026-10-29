@@ -1,6 +1,7 @@
 const http = require('http');
 const port = process.env.PORT || 3000;
 const fs = require('fs');
+const path = require('path');
 const baseAssetPath = '/home/pihead/enviro-lite/web/static/';
 const prepareData = require('./preparedata');
 const { getAggData, getPeakData } = require('./historicaldata');
@@ -74,12 +75,21 @@ const getFields = (url) => {
     return defaultFields;
 };
 
-const getFileNameFromUrl = (url) => {
-    const results = url.match(/(?<=\/)[^\/\?#]+(?=[^\/]*$)/);
-    if (results && results.length > 0) {
-        return results[0];
+// Maps a request URL to a path under baseAssetPath, keeping subdirectories (css/, js/).
+// Returns null for anything that would resolve outside the static directory.
+const getFilePathFromUrl = (url) => {
+    let urlPath;
+    try {
+        urlPath = decodeURIComponent(url.split(/[?#]/)[0]);
+    } catch (e) {
+        return null;
     }
-    return 'weather_simp.html'
+    urlPath = path.normalize(urlPath);
+    if (urlPath === '/' || urlPath === '.') {
+        urlPath = '/weather_simp.html';
+    }
+    const filePath = path.join(baseAssetPath, urlPath);
+    return filePath.startsWith(baseAssetPath) ? filePath : null;
 };
 
 const getContentTypeForFileType = (fileName) => {
@@ -94,7 +104,11 @@ const getContentTypeForFileType = (fileName) => {
             return { 'Content-Type': 'application/javascript' };
         case '.css':
             return { 'Content-Type': 'text/css' };
-        case 'ico':
+        case '.json':
+            return { 'Content-Type': 'application/json' };
+        case '.png':
+            return { 'Content-Type': 'image/png' };
+        case '.ico':
             return { 'Content-Type': 'image/x-icon' };
         default:
             return { 'Content-Type': 'text/plain' };
@@ -103,16 +117,29 @@ const getContentTypeForFileType = (fileName) => {
 
 const handlers = {
     fileHandler: (request, response) => {
-        const fileName = getFileNameFromUrl(request.url);
-        console.log(`fileHandler Attempting to serve: ${fileName}`);
-        try {
-            response.writeHead(200, getContentTypeForFileType(fileName));
-            fs.createReadStream(`${baseAssetPath}${fileName}`).pipe(response);
-        } catch (e) {
-            console.error(`fileHandler Failed to serve : ${fileName}`, e);
-            response.writeHead(500, { 'Content-Type': 'application/json' });
-            return response.end(JSON.stringify(e));
+        const filePath = getFilePathFromUrl(request.url);
+        console.log(`fileHandler Attempting to serve: ${filePath}`);
+        if (!filePath) {
+            response.writeHead(404, { 'Content-Type': 'text/plain' });
+            return response.end('Not Found');
         }
+        // A missing file used to throw from the stream and take the whole server down
+        fs.stat(filePath, (err, stats) => {
+            if (err || !stats.isFile()) {
+                response.writeHead(404, { 'Content-Type': 'text/plain' });
+                return response.end('Not Found');
+            }
+            const stream = fs.createReadStream(filePath);
+            stream.on('error', (e) => {
+                console.error(`fileHandler Failed to serve : ${filePath}`, e);
+                if (!response.headersSent) {
+                    response.writeHead(500, { 'Content-Type': 'text/plain' });
+                }
+                response.end();
+            });
+            response.writeHead(200, getContentTypeForFileType(filePath));
+            stream.pipe(response);
+        });
     },
 
     aggDATA: (request, response) => {

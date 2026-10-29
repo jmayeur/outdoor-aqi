@@ -89,12 +89,10 @@ const forecast = {
 
         formatPeriods: (periods, hoursToFormat) => {
             const _hoursToFormat = hoursToFormat || 6;
+            const now = new Date();
 
-            if (new Date().getHours() >= new Date(periods[0].startTime).getHours()) {
-                periods.shift();
-            }
-
-            return periods.slice(0, _hoursToFormat).map(period => {
+            // upcoming hours only; filter rather than shift so the cached periods aren't consumed
+            return periods.filter(period => new Date(period.startTime) > now).slice(0, _hoursToFormat).map(period => {
                 const { startTime, temperature, temperatureTrend, probabilityOfPrecipitation, relativeHumidity, windSpeed, windDirection, icon }
                     = period;
                 return { startTime, temperature, temperatureTrend, probabilityOfPrecipitation, relativeHumidity, windSpeed, windDirection, icon };
@@ -125,7 +123,7 @@ const forecast = {
                 if (now >= forecast.hourly.cache.timestamp + 60 * 1000 * 60) {
                     forecast.hourly.cache.data = await forecast.hourly.getRawForecast(station, gridpoint, apiHost);
                     forecast.hourly.cache.timestamp = now;
-                } else if (new Date(forecast.hourly.cache.data.properties.periods[0].startTime).getHours() < new Date(now).getHours()) {
+                } else if (new Date(forecast.hourly.cache.data.properties.periods[0].endTime) <= now) {
                     forecast.hourly.cache.data = await forecast.hourly.getRawForecast(station, gridpoint, apiHost);
                     forecast.hourly.cache.timestamp = now;
                 }
@@ -283,8 +281,9 @@ const forecast = {
                 temperature,
                 temperatureTrend,
                 shortForecast,
-                chanceOfRain: probabilityOfPrecipitation.value,
-                humidity: relativeHumidity.value,
+                // NWS dropped relativeHumidity from the daily forecast; guard both value fields
+                chanceOfRain: probabilityOfPrecipitation && probabilityOfPrecipitation.value,
+                humidity: relativeHumidity && relativeHumidity.value,
                 icon
             };
         },
@@ -373,7 +372,7 @@ const forecast = {
 const showForecast = () => {
     const root = document.querySelector('.forecast');
     root.innerHTML = '';
-    forecast.day.renderForecast(root);
+    forecast.hourly.renderForecast(root);
     root.classList.remove('noshow');
 }
 

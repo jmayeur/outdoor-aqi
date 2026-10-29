@@ -134,9 +134,9 @@ async function getWeatherData() {
         _outdoorData = {
             data: [{
                 time: new Date('1/1/1970').getTime() / 1000,
-                raw_temp: 0,
-                raw_humidity: 0,
-                raw_bar: 0,
+                output_temp: 0,
+                output_humidity: 0,
+                output_bar: 0,
                 P25: 0,
                 P10: 0,
             }]
@@ -156,9 +156,9 @@ async function getWeatherData() {
         },
         outdoor: {
             time: outdoorData.time,
-            temp: Math.round(outdoorData.raw_temp),
-            humidity: Math.round(outdoorData.raw_humidity),
-            pressure: outdoorData.raw_bar,
+            temp: Math.round(outdoorData.output_temp),
+            humidity: Math.round(outdoorData.output_humidity),
+            pressure: outdoorData.output_bar,
             aqi: getAQI(outdoorData.P25, outdoorData.P10),
         }
     }
@@ -286,7 +286,7 @@ const viewStates = [
     },
     {
         id: 'clock',
-        isActive: false,
+        isActive: true,
         isVisible: false,
         showFn: showClock,
         hideFn: hideClock,
