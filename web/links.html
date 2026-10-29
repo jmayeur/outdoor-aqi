@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sensor Pages</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./css/theme.css">
+    <style>
+        main { max-width: 960px; margin: 0 auto; }
+        h1 { color: #e2e8f0; font-size: 1.4rem; font-weight: 600; margin: 0.5rem 0 0.25rem; }
+        .sub { color: #64748b; margin: 0 0 1.5rem; }
+        h2 {
+            color: #94a3b8; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em;
+            text-transform: uppercase; margin: 1.75rem 0 0.5rem;
+        }
+        .card {
+            background: #12121e; border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px; overflow: hidden;
+        }
+        .row {
+            display: grid; grid-template-columns: 1fr auto; gap: 0.5rem 1rem;
+            align-items: center; padding: 0.75rem 1rem;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        .row:first-child { border-top: 0; }
+        .name { color: #e2e8f0; font-weight: 500; }
+        .desc { color: #64748b; font-size: 0.8rem; margin-top: 0.15rem; }
+        .tag {
+            display: inline-block; font-size: 0.65rem; font-weight: 600; padding: 0.05rem 0.4rem;
+            border-radius: 4px; margin-left: 0.4rem; vertical-align: 1px;
+        }
+        .tag.latest { background: rgba(52,211,153,0.15); color: #34d399; }
+        .tag.legacy { background: rgba(148,163,184,0.12); color: #94a3b8; }
+        .links { display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: flex-end; }
+        .links a {
+            color: #93c5fd; text-decoration: none; font-size: 0.8rem; font-weight: 500;
+            padding: 0.3rem 0.65rem; border-radius: 6px; background: rgba(147,197,253,0.08);
+            white-space: nowrap;
+        }
+        .links a:hover, .links a:focus-visible { background: rgba(147,197,253,0.18); }
+        @media (max-width: 560px) {
+            .row { grid-template-columns: 1fr; }
+            .links { justify-content: flex-start; }
+        }
+    </style>
+</head>
+
+<body>
+    <main>
+        <h1>Sensor Pages</h1>
+        <p class="sub">Every UI and data endpoint across the outdoor and indoor Pis.</p>
+        <div id="sections"></div>
+    </main>
+
+    <script>
+        const HOSTS = {
+            outdoor: 'http://192.168.119.137',
+            indoor: 'http://192.168.119.220',
+        };
+
+        // perSensor: page reads ?sensor= and can show either Pi's data from one host.
+        // Otherwise the page shows the data of whichever Pi serves it.
+        const SECTIONS = [
+            {
+                title: 'Public',
+                items: [
+                    { name: 'mtn-aqi.com', desc: 'Daily health score, published to Cloudflare', href: 'https://mtn-aqi.com/', tag: 'latest' },
+                ],
+            },
+            {
+                title: 'Current conditions',
+                items: [
+                    { name: 'Weather (simple)', desc: 'Default page served at /', path: '/weather_simp.html', tag: 'latest' },
+                    { name: 'Weather', path: '/weather.html' },
+                    { name: 'Weather (circles)', path: '/weather_circles.html' },
+                    { name: 'Weather (original)', path: '/weather_orig.html', tag: 'legacy' },
+                    { name: 'Rotate', desc: 'Alternates current conditions and trends every 30 s (outdoor only)', path: '/rotate.html' },
+                ],
+            },
+            {
+                title: 'Charts & trends',
+                items: [
+                    { name: 'AQ chart v3', desc: 'Live and historical PM charts', path: '/aq-chart-v3.html', perSensor: true, tag: 'latest' },
+                    { name: 'AQ chart v2', path: '/aq2-chart.html', tag: 'legacy' },
+                    { name: 'AQ chart v1', path: '/aq-chart.html', tag: 'legacy' },
+                    { name: 'AQI trends', desc: 'Daily AQI calendar', path: '/aqi_trends.html', perSensor: true },
+                    { name: 'AQI thresholds', desc: 'Hours with PM2.5 above the Good range', path: '/thresholds.html', perSensor: true },
+                ],
+            },
+            {
+                title: 'System',
+                items: [
+                    { name: 'Core temp', desc: 'Pi CPU temperature (outdoor only)', path: '/coretemp.html' },
+                    { name: 'KUAO METAR', desc: 'Aurora State Airport conditions', path: '/metar.html' },
+                ],
+            },
+            {
+                title: 'Raw data (JSON)',
+                items: [
+                    { name: 'Latest reading', path: '/realtime.json' },
+                    { name: 'Minute data, 24 h', path: '/aq-data.json?dh=24&fields=(p1,p10,p25)' },
+                    { name: 'Hourly averages, 30 d', path: '/agg-aq-data.json?dd=30&fields=(p1,p10,p25)' },
+                    { name: 'Hourly peaks, 30 d', path: '/peak-aq-data.json?dd=30&fields=(p1,p10,p25)' },
+                    { name: 'Hours above PM2.5 threshold', path: '/above_p25_threshold.json' },
+                ],
+            },
+        ];
+
+        const el = (tag, props = {}, children = []) => {
+            const node = Object.assign(document.createElement(tag), props);
+            node.append(...children);
+            return node;
+        };
+
+        const linksFor = (item) => {
+            if (item.href) {
+                return [{ label: 'Open', href: item.href }];
+            }
+            return Object.entries(HOSTS).map(([sensor, host]) => {
+                const sep = item.path.includes('?') ? '&' : '?';
+                const href = item.perSensor ? `${host}${item.path}${sep}sensor=${sensor}` : `${host}${item.path}`;
+                return { label: sensor === 'outdoor' ? 'Outdoor' : 'Indoor', href };
+            });
+        };
+
+        const sections = document.getElementById('sections');
+        SECTIONS.forEach((section) => {
+            const card = el('div', { className: 'card' }, section.items.map((item) => {
+                const name = el('div', { className: 'name', textContent: item.name });
+                if (item.tag) {
+                    name.append(el('span', { className: `tag ${item.tag}`, textContent: item.tag }));
+                }
+                const info = el('div', {}, [name]);
+                if (item.desc) {
+                    info.append(el('div', { className: 'desc', textContent: item.desc }));
+                }
+                const links = el('div', { className: 'links' },
+                    linksFor(item).map(({ label, href }) => el('a', { href, textContent: label })));
+                return el('div', { className: 'row' }, [info, links]);
+            }));
+            sections.append(el('h2', { textContent: section.title }), card);
+        });
+    </script>
+</body>
+
+</html>
