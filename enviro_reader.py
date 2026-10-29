@@ -1,7 +1,8 @@
 #!/usr/bin/env python
-from pms5003 import PMS5003
+from pms5003 import PMS5003, ChecksumMismatchError
 import board
 import math
+import time
 import types
 from adafruit_bme280 import basic as adafruit_bme280
 from mics6814 import MICS6814
@@ -191,9 +192,29 @@ class EnviroReader:
     def recalibrate(self):
         self.pms5003.reset()
 
-    def read_data(self):
-        pms5003_data = self.pms5003.read()
-        pm25 = pms5003_data.pm_ug_per_m3(2.5)
+    def read_pm_averaged(self, window_secs):
+        # The PMS5003 streams a frame every ~1-2s; average them all over the window
+        # instead of keeping a single frame per sample. Bad frames are skipped.
+        deadline = time.time() + window_secs
+        totals = {1.0: 0.0, 2.5: 0.0, 10: 0.0}
+        frames = 0
+        bad_frames = 0
+        while time.time() < deadline:
+            try:
+                frame = self.pms5003.read()
+            except ChecksumMismatchError:
+                bad_frames += 1
+                continue
+            for size in totals:
+                totals[size] += frame.pm_ug_per_m3(size)
+            frames += 1
+        if frames == 0:
+            raise ChecksumMismatchError('No valid PMS5003 frames in {}s ({} bad)'.format(window_secs, bad_frames))
+        return {size: round(total / frames, 2) for size, total in totals.items()}, frames
+
+    def read_data(self, pm_window_secs=55):
+        pm, pm_frames = self.read_pm_averaged(pm_window_secs)
+        pm25 = pm[2.5]
         aqi = AQIPM25(pm25)
         aqi_label = AQIRating(aqi)
         temp_celcius = self.bme280.temperature
@@ -219,9 +240,10 @@ class EnviroReader:
             'pressure': pressure,
             'adjusted_pressure': _adjusted_pressure,
             'altitude': altitude,
-            'PM1.0':  pms5003_data.pm_ug_per_m3(1.0),
+            'PM1.0':  pm[1.0],
             'PM2.5': pm25,
-            'PM10': pms5003_data.pm_ug_per_m3(10),
+            'PM10': pm[10],
+            'PM_FRAMES': pm_frames,
             'AQI': aqi,
             'AQI_LABEL': aqi_label,
             'red': red_in_ppm,
