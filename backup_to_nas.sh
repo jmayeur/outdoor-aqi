@@ -1,6 +1,7 @@
 #!/bin/sh
-# Nightly consistent SQLite snapshot of the environment DB, pushed to the Synology NAS.
-# cron: 15 3 * * * /home/pihead/enviro-lite/backup_to_nas.sh >> /home/pihead/db-backups/backup.log 2>&1
+# Weekly consistent SQLite snapshot of the environment DB, pushed to the Synology NAS.
+# Only the latest verified snapshot is kept, both on the NAS and locally.
+# cron: 15 3 * * SUN /home/pihead/enviro-lite/backup_to_nas.sh >> /home/pihead/db-backups/backup.log 2>&1
 set -eu
 
 DB=/home/pihead/enviro-lite/environment
@@ -8,8 +9,6 @@ LOCAL_DIR=/home/pihead/db-backups
 NAS=jmayeur@192.168.119.136
 NAS_DIR=/volume1/misc/aqi-backups/${BACKUP_NAME:-outdoor}
 KEY=/home/pihead/.ssh/id_ed25519_nas
-LOCAL_KEEP_DAYS=7
-NAS_KEEP_DAYS=90
 
 mkdir -p "$LOCAL_DIR"
 snap="$LOCAL_DIR/environment-$(date +%Y%m%d-%H%M%S).db"
@@ -35,8 +34,9 @@ if [ "$local_sum" != "$remote_sum" ]; then
 fi
 ssh -i "$KEY" -o BatchMode=yes "$NAS" "mv '$NAS_DIR/$name.part' '$NAS_DIR/$name'"
 
-find "$LOCAL_DIR" -name 'environment-*.db*' -mtime +$LOCAL_KEEP_DAYS -delete
-ssh -i "$KEY" -o BatchMode=yes -o StrictHostKeyChecking=accept-new "$NAS" \
-    "find '$NAS_DIR' -name 'environment-*.db.gz' -mtime +$NAS_KEEP_DAYS -delete"
+# The new snapshot is verified on the NAS, so drop every older one
+find "$LOCAL_DIR" -name 'environment-*.db*' ! -name "$name" -delete
+ssh -i "$KEY" -o BatchMode=yes "$NAS" \
+    "find '$NAS_DIR' -name 'environment-*.db.gz*' ! -name '$name' -delete"
 
 echo "$(date -Is) backed up $name ($local_sum)"
