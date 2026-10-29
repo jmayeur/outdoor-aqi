@@ -77,6 +77,17 @@ class EnviroDBManager {
         );
     }
 
+    // raw_humidity (the sensor's own RH, before the dew point correction) is kept in the
+    // hourly averages because the EPA PM2.5 correction is defined against it
+    ensureRawHumidityColumn() {
+        return this._readData('PRAGMA table_info(agg_envdata)', []).then(result => {
+            if (result.data.some(col => col.name === 'raw_humidity')) {
+                return;
+            }
+            return this._execQuery('ALTER TABLE agg_envdata ADD COLUMN raw_humidity REAL', []);
+        });
+    }
+
     // envdata is kept indefinitely, so time-range reads need an index to stay fast
     ensureTimeIndex() {
         return this._execQuery('CREATE INDEX IF NOT EXISTS envdata_time ON envdata (time)', []);
@@ -144,6 +155,7 @@ class EnviroDBManager {
                 hour: new Date(parseInt(key)).getTime() / 1000,
                 output_temp: 0,
                 output_humidity: 0,
+                raw_humidity: 0,
                 output_bar: 0,
                 oxi: 0,
                 red: 0,
@@ -157,6 +169,7 @@ class EnviroDBManager {
             const rawData = hourBucket.reduce((c, r) => {
                 c.output_temp += r.output_temp;
                 c.output_humidity += r.output_humidity;
+                c.raw_humidity += r.raw_humidity;
                 c.output_bar += r.output_bar;
                 c.oxi += r.oxi;
                 c.red += r.red;
@@ -170,6 +183,7 @@ class EnviroDBManager {
 
             rawData.output_temp = rawData.output_temp / rawData.ENTRIES;
             rawData.output_humidity = rawData.output_humidity / rawData.ENTRIES;
+            rawData.raw_humidity = rawData.raw_humidity / rawData.ENTRIES;
             rawData.output_bar = rawData.output_bar / rawData.ENTRIES;
             rawData.oxi = rawData.oxi / rawData.ENTRIES;
             rawData.red = rawData.red / rawData.ENTRIES;
@@ -248,6 +262,9 @@ class EnviroDBManager {
                         const existingAggregate = result.data[0];
                         finalAggregate.output_temp = calculateCombined(finalAggregate, existingAggregate, 'output_temp', 'output_temp');
                         finalAggregate.output_humidity = calculateCombined(finalAggregate, existingAggregate, 'output_humidity', 'output_humidity');
+                        finalAggregate.raw_humidity = existingAggregate.raw_humidity == null
+                            ? finalAggregate.raw_humidity
+                            : calculateCombined(finalAggregate, existingAggregate, 'raw_humidity', 'raw_humidity');
                         finalAggregate.output_bar = calculateCombined(finalAggregate, existingAggregate, 'output_bar', 'output_bar');
                         finalAggregate.oxi = calculateCombined(finalAggregate, existingAggregate, 'oxi', 'oxi');
                         finalAggregate.red = calculateCombined(finalAggregate, existingAggregate, 'red', 'red');
@@ -261,6 +278,7 @@ class EnviroDBManager {
                         SET
                         output_temp = $output_temp,
                         output_humidity = $output_humidity,
+                        raw_humidity = $raw_humidity,
                         output_bar = $output_bar,
                         oxi = $oxi,
                         red = $red,
@@ -271,8 +289,8 @@ class EnviroDBManager {
                         ENTRIES = $ENTRIES WHERE hour = $hour;`;
 
                     } else {
-                        query = `INSERT INTO agg_envdata (hour, output_temp, output_humidity, output_bar, oxi, red, nh3, p1, P10, P25, ENTRIES)
-                        VALUES ($hour, $output_temp, $output_humidity, $output_bar, $oxi, $red, $nh3, $p1, $P10, $P25, $ENTRIES);`;
+                        query = `INSERT INTO agg_envdata (hour, output_temp, output_humidity, raw_humidity, output_bar, oxi, red, nh3, p1, P10, P25, ENTRIES)
+                        VALUES ($hour, $output_temp, $output_humidity, $raw_humidity, $output_bar, $oxi, $red, $nh3, $p1, $P10, $P25, $ENTRIES);`;
                     }
 
                     this._execQuery(query, this.mapDataToParams(finalAggregate)).then(r => {
@@ -345,6 +363,7 @@ function main() {
             return enviroDBManager.ensureMetaTable();
         })
         .then(() => enviroDBManager.ensureTimeIndex())
+        .then(() => enviroDBManager.ensureRawHumidityColumn())
         .then(() => enviroDBManager.readLastAggCheckpoint())
         .then(checkpoint => {
             console.log(`Aggregation window: ${checkpoint} → ${aggCutoff}`);
