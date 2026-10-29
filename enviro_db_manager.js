@@ -1,7 +1,7 @@
 const sqlite3 = require('sqlite3');
 
 const AGG_WINDOW_SECS   = 24 * 60 * 60;       // aggregate data older than 24 h
-const PURGE_WINDOW_SECS = 30 * 24 * 60 * 60;  // delete minute-level data older than 30 days
+const PURGE_WINDOW_SECS = null;               // keep minute-level data forever (~58 MB/year); set seconds to purge
 
 class EnviroDBManager {
 
@@ -75,6 +75,11 @@ class EnviroDBManager {
             )`,
             []
         );
+    }
+
+    // envdata is kept indefinitely, so time-range reads need an index to stay fast
+    ensureTimeIndex() {
+        return this._execQuery('CREATE INDEX IF NOT EXISTS envdata_time ON envdata (time)', []);
     }
 
     /** Returns the Unix timestamp (seconds) of the last successful aggregation,
@@ -211,9 +216,9 @@ class EnviroDBManager {
     /**
      * Deletes envdata rows older than the given timestamp.
      *
-     * Previously called with a 24-hour cutoff (immediately after aggregation).
-     * Now called with a 30-day cutoff so minute-level data is retained long
-     * enough for any failed daily scoring job to be replayed from raw readings.
+     * Only called when PURGE_WINDOW_SECS is set. Minute data is now kept
+     * indefinitely so history can be recomputed from raw readings when the
+     * corrections change.
      */
     purgeOldData(olderThan) {
         const query = 'DELETE FROM envdata WHERE time <= ?';
@@ -332,13 +337,14 @@ const enviroDBManager = new EnviroDBManager();
 function main() {
     const now         = Math.round(Date.now() / 1000);
     const aggCutoff   = now - AGG_WINDOW_SECS;    // upper bound: only aggregate complete hours
-    const purgeCutoff = now - PURGE_WINDOW_SECS;  // lower bound: keep 30 days of minute data
+    const purgeCutoff = PURGE_WINDOW_SECS === null ? null : now - PURGE_WINDOW_SECS;
 
     return enviroDBManager.openDB('environment')
         .then(msg => {
             console.log(msg);
             return enviroDBManager.ensureMetaTable();
         })
+        .then(() => enviroDBManager.ensureTimeIndex())
         .then(() => enviroDBManager.readLastAggCheckpoint())
         .then(checkpoint => {
             console.log(`Aggregation window: ${checkpoint} → ${aggCutoff}`);
@@ -368,13 +374,13 @@ function main() {
                 .then(() => console.log(`Checkpoint advanced to ${aggCutoff}`));
         })
         .then(() => {
-            console.log(`Purging envdata older than 30 days (cutoff: ${purgeCutoff})`);
-            return enviroDBManager.purgeOldData(purgeCutoff);
+            if (purgeCutoff === null) {
+                return;
+            }
+            console.log(`Purging envdata older than ${PURGE_WINDOW_SECS / 86400} days (cutoff: ${purgeCutoff})`);
+            return enviroDBManager.purgeOldData(purgeCutoff).then(() => console.log('Purge complete'));
         })
-        .then(() => {
-            console.log('Purge complete');
-            enviroDBManager.close();
-        })
+        .then(() => enviroDBManager.close())
         .catch(err => {
             console.error('Error in main():', err);
             enviroDBManager.close();
