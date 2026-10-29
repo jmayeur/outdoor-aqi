@@ -67,10 +67,9 @@
     <script src="./forecast.js"></script>
     <script src="./weather_simp.js"></script>
     <script>
-        //updateData();
-        //setInterval(switchViews, 20000);
-        //showForecast();
-        showClock();
+        // Rotate weather -> clock -> forecast every 20s; weather refreshes its data each time it's shown
+        showWeather();
+        setInterval(switchViews, 20000);
     </script>
 </body>
 
