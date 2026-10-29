@@ -13,10 +13,9 @@ comp_temp_cub_b = -0.03129
 comp_temp_cub_c = 1.8736
 comp_temp_cub_d = -14.82131
 comp_temp_cub_d = comp_temp_cub_d + temp_offset
-# Quadratic polynomial hum comp coefficients
-comp_hum_quad_a = -0.0221
-comp_hum_quad_b = 3.3824
-comp_hum_quad_c = -25.8102
+# Magnus coefficients (Sonntag 1990) for dew point based humidity correction
+magnus_b = 17.62
+magnus_c = 243.12
 
 # New Gas Comp Factors based on long term regression testing and proportion of RS
 red_temp_comp_factor = -0.015
@@ -92,9 +91,15 @@ def adjusted_temperature(temp):
     return (comp_temp_cub_a * math.pow(temp, 3) + comp_temp_cub_b * math.pow(temp, 2) +
                  comp_temp_cub_c * temp + comp_temp_cub_d)
     
-def adjusted_humidity(humidity):
-    #comp_hum = comp_hum_slope * raw_hum + comp_hum_intercept
-    return comp_hum_quad_a * math.pow(humidity, 2) + comp_hum_quad_b * humidity + comp_hum_quad_c
+def adjusted_humidity(humidity, raw_temp, adjusted_temp):
+    # The sensor sits in air warmed by the Pi but with the same water content as outside,
+    # so keep the dew point from the raw readings and recompute RH at the corrected temp.
+    # The old quadratic ignored temperature and peaked above 100%.
+    if humidity <= 0:
+        return 0.0
+    gamma = math.log(humidity / 100) + magnus_b * raw_temp / (magnus_c + raw_temp)
+    comp_hum = 100 * math.exp(gamma - magnus_b * adjusted_temp / (magnus_c + adjusted_temp))
+    return min(100.0, comp_hum)
 
 def barometer_altitude_comp_factor(alt, temp):
     comp_factor = math.pow(1 - (0.0065 * alt/(temp + 0.0065 * alt + 273.15)), -5.257)
@@ -197,7 +202,7 @@ class EnviroReader:
         temp_celcius = self.bme280.temperature
         humidity = self.bme280.relative_humidity
         adjusted_temp_celcius = adjusted_temperature(temp_celcius)
-        _adjusted_humidity = adjusted_humidity(humidity)
+        _adjusted_humidity = adjusted_humidity(humidity, temp_celcius, adjusted_temp_celcius)
         altitude = station_altitude_m
         pressure = self.bme280.pressure
         # Use the real station elevation and ambient (corrected) temp; bme280.altitude is
