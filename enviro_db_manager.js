@@ -121,8 +121,9 @@ class EnviroDBManager {
 
     bucketData(rows) {
         return rows.reduce((c, r) => {
-            const date = new Date(r.time * 1000);
-            const hourBucket = new Date(`${date.toLocaleDateString('en-US')} ${date.getHours()}:00:00`).getTime().toString();
+            // Bucket on UTC hour boundaries so the repeated local hour at the end of DST
+            // stays two separate hours instead of merging into one
+            const hourBucket = (Math.floor(r.time / 3600) * 3600 * 1000).toString();
             if (!c[hourBucket]) {
                 c[hourBucket] = [];
             }
@@ -136,9 +137,9 @@ class EnviroDBManager {
             const hourBucket = bucketedHourMap[key];
             const sumMap = {
                 hour: new Date(parseInt(key)).getTime() / 1000,
-                raw_temp: 0,
-                raw_humidity: 0,
-                raw_bar: 0,
+                output_temp: 0,
+                output_humidity: 0,
+                output_bar: 0,
                 oxi: 0,
                 red: 0,
                 nh3: 0,
@@ -149,9 +150,9 @@ class EnviroDBManager {
             };
 
             const rawData = hourBucket.reduce((c, r) => {
-                c.raw_temp += r.raw_temp;
-                c.raw_humidity += r.raw_humidity;
-                c.raw_bar += r.raw_bar;
+                c.output_temp += r.output_temp;
+                c.output_humidity += r.output_humidity;
+                c.output_bar += r.output_bar;
                 c.oxi += r.oxi;
                 c.red += r.red;
                 c.nh3 += r.nh3;
@@ -162,9 +163,9 @@ class EnviroDBManager {
                 return c;
             }, sumMap);
 
-            rawData.raw_temp = rawData.raw_temp / rawData.ENTRIES;
-            rawData.raw_humidity = rawData.raw_humidity / rawData.ENTRIES;
-            rawData.raw_bar = rawData.raw_bar / rawData.ENTRIES;
+            rawData.output_temp = rawData.output_temp / rawData.ENTRIES;
+            rawData.output_humidity = rawData.output_humidity / rawData.ENTRIES;
+            rawData.output_bar = rawData.output_bar / rawData.ENTRIES;
             rawData.oxi = rawData.oxi / rawData.ENTRIES;
             rawData.red = rawData.red / rawData.ENTRIES;
             rawData.nh3 = rawData.nh3 / rawData.ENTRIES;
@@ -180,9 +181,9 @@ class EnviroDBManager {
             const hourBucket = bucketedHourMap[key];
             const peakMap = {
                 hour: new Date(parseInt(key)).getTime() / 1000,
-                raw_temp: 0,
-                raw_humidity: 0,
-                raw_bar: 0,
+                output_temp: 0,
+                output_humidity: 0,
+                output_bar: 0,
                 oxi: 0,
                 red: 0,
                 nh3: 0,
@@ -240,9 +241,9 @@ class EnviroDBManager {
                     let query;
                     if (result && result.data && result.data.length > 0) {
                         const existingAggregate = result.data[0];
-                        finalAggregate.raw_temp = calculateCombined(finalAggregate, existingAggregate, 'raw_temp', 'output_temp');
-                        finalAggregate.raw_humidity = calculateCombined(finalAggregate, existingAggregate, 'raw_humidity', 'output_humidity');
-                        finalAggregate.raw_bar = calculateCombined(finalAggregate, existingAggregate, 'raw_bar', 'output_bar');
+                        finalAggregate.output_temp = calculateCombined(finalAggregate, existingAggregate, 'output_temp', 'output_temp');
+                        finalAggregate.output_humidity = calculateCombined(finalAggregate, existingAggregate, 'output_humidity', 'output_humidity');
+                        finalAggregate.output_bar = calculateCombined(finalAggregate, existingAggregate, 'output_bar', 'output_bar');
                         finalAggregate.oxi = calculateCombined(finalAggregate, existingAggregate, 'oxi', 'oxi');
                         finalAggregate.red = calculateCombined(finalAggregate, existingAggregate, 'red', 'red');
                         finalAggregate.nh3 = calculateCombined(finalAggregate, existingAggregate, 'nh3', 'nh3');
@@ -253,9 +254,9 @@ class EnviroDBManager {
 
                         query = `UPDATE agg_envdata
                         SET
-                        output_temp = $raw_temp,
-                        output_humidity = $raw_humidity,
-                        output_bar = $raw_bar,
+                        output_temp = $output_temp,
+                        output_humidity = $output_humidity,
+                        output_bar = $output_bar,
                         oxi = $oxi,
                         red = $red,
                         nh3 = $nh3,
@@ -266,7 +267,7 @@ class EnviroDBManager {
 
                     } else {
                         query = `INSERT INTO agg_envdata (hour, output_temp, output_humidity, output_bar, oxi, red, nh3, p1, P10, P25, ENTRIES)
-                        VALUES ($hour, $raw_temp, $raw_humidity, $raw_bar, $oxi, $red, $nh3, $p1, $P10, $P25, $ENTRIES);`;
+                        VALUES ($hour, $output_temp, $output_humidity, $output_bar, $oxi, $red, $nh3, $p1, $P10, $P25, $ENTRIES);`;
                     }
 
                     this._execQuery(query, this.mapDataToParams(finalAggregate)).then(r => {
@@ -293,22 +294,14 @@ class EnviroDBManager {
                     if (result && result.data && result.data.length > 0) {
                         const existingHourPeak = result.data[0];
                         Object.keys(finalHourPeak).forEach(key => {
-                            let existing_key = key;
-                            if (existing_key === 'raw_temp') {
-                                existing_key = 'output_temp';
-                            } else if (existing_key === 'raw_humidity') {
-                                existing_key = 'output_humidity';
-                            } else if (existing_key === 'raw_bar') {
-                                existing_key = 'output_bar';
-                            }
-                            finalHourPeak[key] = finalHourPeak[key] >= existingHourPeak[existing_key] ? finalHourPeak[key] : existingHourPeak[existing_key];
+                            finalHourPeak[key] = finalHourPeak[key] >= existingHourPeak[key] ? finalHourPeak[key] : existingHourPeak[key];
                         });
 
                         query = `UPDATE hourly_peak_envdata
                         SET
-                        output_temp = $raw_temp,
-                        output_humidity = $raw_humidity,
-                        output_bar = $raw_bar,
+                        output_temp = $output_temp,
+                        output_humidity = $output_humidity,
+                        output_bar = $output_bar,
                         oxi = $oxi,
                         red = $red,
                         nh3 = $nh3,
@@ -318,7 +311,7 @@ class EnviroDBManager {
 
                     } else {
                         query = `INSERT INTO hourly_peak_envdata (hour, output_temp, output_humidity, output_bar, oxi, red, nh3, p1, P10, P25)
-                        VALUES ($hour, $raw_temp, $raw_humidity, $raw_bar, $oxi, $red, $nh3, $p1, $P10, $P25);`;
+                        VALUES ($hour, $output_temp, $output_humidity, $output_bar, $oxi, $red, $nh3, $p1, $P10, $P25);`;
                     }
                     this._execQuery(query, this.mapDataToParams(finalHourPeak)).then(r => {
                         success.push(r)
