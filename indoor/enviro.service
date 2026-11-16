@@ -1,0 +1,13 @@
+[Unit]
+Description=Indoor Enviro+ collector and LCD display
+After=multi-user.target
+
+[Service]
+Restart=on-failure
+RestartSec=30s
+User=pihead
+WorkingDirectory=/home/pihead/enviro-lite
+ExecStart=python3 -u /home/pihead/enviro-lite/indoor/indoor_monitor.py
+
+[Install]
+WantedBy=multi-user.target

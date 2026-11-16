@@ -2,9 +2,10 @@
 # Weekly consistent SQLite snapshot of the environment DB, pushed to the Synology NAS.
 # Only the latest verified snapshot is kept, both on the NAS and locally.
 # cron: 15 3 * * SUN /home/pihead/enviro-lite/backup_to_nas.sh >> /home/pihead/db-backups/backup.log 2>&1
+# Indoor Pi: prefix with DB=/path/to/environment BACKUP_NAME=indoor
 set -eu
 
-DB=/home/pihead/enviro-lite/environment
+DB=${DB:-/home/pihead/enviro-lite/environment}
 LOCAL_DIR=/home/pihead/db-backups
 NAS=jmayeur@192.168.119.136
 NAS_DIR=/volume1/misc/aqi-backups/${BACKUP_NAME:-outdoor}
