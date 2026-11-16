@@ -1,5 +1,5 @@
 # Sensor corrections and AQI math, kept free of hardware imports so the
-# collector and recompute_history.py share exactly the same formulas
+# collectors and the history recompute scripts share exactly the same formulas
 import math
 
 # Temperature calibration, fitted against KPDX hourly obs (37k hours, 2022-07 to 2026-10):
@@ -17,6 +17,31 @@ magnus_c = 243.12
 # Station elevation for sea-level pressure correction (730 ft)
 station_altitude_m = 222.5
 temp_lapse_adjustment = lapse_rate_c_per_m * (station_altitude_m - pdx_altitude_m)
+
+# Per-site calibration. corrected_C = temp_slope * raw_C + temp_intercept - temp_lapse;
+# raw RH is multiplied by hum_scale before the dew point correction.
+#   outdoor        Pi 3 outside, fitted to KPDX (above)
+#   indoor_legacy  Pi Zero W indoors running the old aqi_monitor.py, whose constant LCD
+#                  redraws heat the sensor more; used for history recorded before the
+#                  collector port. PROVISIONAL: fitted against the ecobee "Jeff's Office"
+#                  sensor next to it over 2026-11-08..15 only (raw 26-29 C, offset-only
+#                  fit, residual sd 0.27 C); to be refitted with a summer export.
+#   indoor         the same Pi on indoor/indoor_monitor.py. PROVISIONAL copy of
+#                  indoor_legacy until a few days of post-port ecobee data are fitted.
+# Indoor altitude: raw pressure reads 0.81 hPa (sd 0.27) below the outdoor sensor over
+# 721 shared hours, i.e. 6.8 m higher. Sea-level reduction should use outdoor air
+# temperature, which the indoor Pi doesn't have; room temperature biased it ~-0.9 hPa
+# against the outdoor Pi in winter, so indoors reduces with the ISA 15 C instead
+# (slp_temp_c; None means use the corrected sensor temperature).
+SITES = {
+    'outdoor': {'temp_slope': comp_temp_slope, 'temp_intercept': comp_temp_intercept,
+                'temp_lapse': temp_lapse_adjustment, 'hum_scale': 1.0,
+                'altitude_m': station_altitude_m, 'slp_temp_c': None},
+    'indoor_legacy': {'temp_slope': 1.0, 'temp_intercept': -7.46, 'temp_lapse': 0.0,
+                      'hum_scale': 1.0, 'altitude_m': 229.3, 'slp_temp_c': 15.0},
+    'indoor': {'temp_slope': 1.0, 'temp_intercept': -7.46, 'temp_lapse': 0.0,
+               'hum_scale': 1.0, 'altitude_m': 229.3, 'slp_temp_c': 15.0},
+}
 
 def linear (AQIHigh, AQILow, concHigh, concLow, concentration):
     return round(((concentration - concLow) / (concHigh - concLow)) * (AQIHigh - AQILow) + AQILow)
@@ -63,15 +88,17 @@ def celsius_to_fahrenheit(deg_celsius):
 def fahrenheit_to_celsius(deg_fahrenheit):
     return (deg_fahrenheit - 32) * 5 / 9
 
-def adjusted_temperature(temp):
-    return comp_temp_slope * temp + comp_temp_intercept - temp_lapse_adjustment
-    
-def adjusted_humidity(humidity, raw_temp, adjusted_temp):
+def adjusted_temperature(temp, site='outdoor'):
+    cal = SITES[site]
+    return cal['temp_slope'] * temp + cal['temp_intercept'] - cal['temp_lapse']
+
+def adjusted_humidity(humidity, raw_temp, adjusted_temp, site='outdoor'):
     # The sensor sits in air warmed by the Pi but with the same water content as outside,
     # so keep the dew point from the raw readings and recompute RH at the corrected temp.
     # The old quadratic ignored temperature and peaked above 100%.
     if humidity <= 0:
         return 0.0
+    humidity = min(100.0, humidity * SITES[site]['hum_scale'])
     gamma = math.log(humidity / 100) + magnus_b * raw_temp / (magnus_c + raw_temp)
     comp_hum = 100 * math.exp(gamma - magnus_b * adjusted_temp / (magnus_c + adjusted_temp))
     return min(100.0, comp_hum)
@@ -82,3 +109,8 @@ def barometer_altitude_comp_factor(alt, temp):
 
 def adjusted_pressure(pressure, altitude, temp):
     return round(pressure * barometer_altitude_comp_factor(altitude, temp), 1)
+
+def sea_level_pressure(pressure, adjusted_temp, site='outdoor'):
+    cal = SITES[site]
+    temp = adjusted_temp if cal['slp_temp_c'] is None else cal['slp_temp_c']
+    return adjusted_pressure(pressure, cal['altitude_m'], temp)
