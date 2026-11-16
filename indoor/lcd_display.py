@@ -70,7 +70,7 @@ class Display:
         self.font_ml = ImageFont.truetype(UserFont, 18)
         self.icons = {}
         for name in os.listdir(ICON_DIR):
-            if name.endswith('.png'):
+            if name.endswith('.png') and not name.startswith('.'):
                 self.icons[name[:-4]] = Image.open(os.path.join(ICON_DIR, name)).convert('RGBA')
         self._sun_cache = {}
 
