@@ -23,11 +23,14 @@ temp_lapse_adjustment = lapse_rate_c_per_m * (station_altitude_m - pdx_altitude_
 #   outdoor        Pi 3 outside, fitted to KPDX (above)
 #   indoor_legacy  Pi Zero W indoors running the old aqi_monitor.py, whose constant LCD
 #                  redraws heat the sensor more; used for history recorded before the
-#                  collector port. PROVISIONAL: fitted against the ecobee "Jeff's Office"
-#                  sensor next to it over 2026-11-08..15 only (raw 26-29 C, offset-only
-#                  fit, residual sd 0.27 C); to be refitted with a summer export.
+#                  collector port. Fitted against the ecobee "Jeff's Office" sensor next to
+#                  it: 3189 hours 2026-06-01..11-15 (raw 24.8-32.4 C), office = 0.917*raw
+#                  - 5.14 C, residual sd 0.57 F; fitting Jun-Sep predicts Oct-Nov within
+#                  0.06 F. hum_scale puts RH 5 points below the main ecobee thermostat
+#                  (user's choice; unscaled it read 4.0 below, sd 1.7).
 #   indoor         the same Pi on indoor/indoor_monitor.py. PROVISIONAL copy of
-#                  indoor_legacy until a few days of post-port ecobee data are fitted.
+#                  indoor_legacy until a few days of post-port ecobee data are fitted
+#                  (less CPU heat should lower the raw reading).
 # Indoor altitude: raw pressure reads 0.81 hPa (sd 0.27) below the outdoor sensor over
 # 721 shared hours, i.e. 6.8 m higher. Sea-level reduction should use outdoor air
 # temperature, which the indoor Pi doesn't have; room temperature biased it ~-0.9 hPa
@@ -37,10 +40,10 @@ SITES = {
     'outdoor': {'temp_slope': comp_temp_slope, 'temp_intercept': comp_temp_intercept,
                 'temp_lapse': temp_lapse_adjustment, 'hum_scale': 1.0,
                 'altitude_m': station_altitude_m, 'slp_temp_c': None},
-    'indoor_legacy': {'temp_slope': 1.0, 'temp_intercept': -7.46, 'temp_lapse': 0.0,
-                      'hum_scale': 1.0, 'altitude_m': 229.3, 'slp_temp_c': 15.0},
-    'indoor': {'temp_slope': 1.0, 'temp_intercept': -7.46, 'temp_lapse': 0.0,
-               'hum_scale': 1.0, 'altitude_m': 229.3, 'slp_temp_c': 15.0},
+    'indoor_legacy': {'temp_slope': 0.9169, 'temp_intercept': -5.140, 'temp_lapse': 0.0,
+                      'hum_scale': 0.977, 'altitude_m': 229.3, 'slp_temp_c': 15.0},
+    'indoor': {'temp_slope': 0.9169, 'temp_intercept': -5.140, 'temp_lapse': 0.0,
+               'hum_scale': 0.977, 'altitude_m': 229.3, 'slp_temp_c': 15.0},
 }
 
 def linear (AQIHigh, AQILow, concHigh, concLow, concentration):
