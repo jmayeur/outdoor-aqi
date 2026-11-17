@@ -2,14 +2,17 @@ const http = require('http');
 const port = process.env.PORT || 3000;
 const fs = require('fs');
 const path = require('path');
-const baseAssetPath = '/home/pihead/enviro-lite/web/static/';
+// STATIC_DIR and EXTRA_ORIGINS let the server run off the Pi for local testing
+const baseAssetPath = path.resolve(process.env.STATIC_DIR || '/home/pihead/enviro-lite/web/static') + path.sep;
 const prepareData = require('./preparedata');
 const { getAggData, getPeakData } = require('./historicaldata');
 const { readRealtimeData, readAboveThresholdP25Hours } = require('./db');
+const { readDailyData } = require('./daily');
 const getCoreTemp = require('./getcoretemp');
 const ALLOWED_ORIGINS = new Set([
     'http://192.168.119.137',
     'http://192.168.119.220',
+    ...(process.env.EXTRA_ORIGINS || '').split(',').filter(Boolean),
 ]);
 
 const baseHeaders = {
@@ -226,6 +229,20 @@ const handlers = {
         }
     },
 
+    dailyDATA: (request, response) => {
+        console.log(`dailyDATA Attempting to serve DATA: ${request.url}`);
+        return readDailyData().then((body) => {
+            const headers = getCORSHeaders(request);
+            headers['Content-Type'] = 'application/json';
+            response.writeHead(200, headers);
+            return response.end(body);
+        }).catch((err) => {
+            console.error(`dailyDATA Failed to serve DATA: ${request.url}`, err);
+            response.writeHead(500, { 'Content-Type': 'application/json' });
+            return response.end(JSON.stringify(String(err)));
+        });
+    },
+
     liveDATA: (request, response) => {
         console.log(`liveDATA Attempting to serve DATA: ${request.url}`);
         try {
@@ -256,7 +273,9 @@ const server = http.createServer(function (request, response) {
         return response.end();
     } else if (method === 'GET') {
 
-        if (request.url.indexOf('/agg-aq-data.json') !== -1) {
+        if (request.url.indexOf('/daily-aq-data.json') !== -1) {
+            return handlers.dailyDATA(request, response);
+        } else if (request.url.indexOf('/agg-aq-data.json') !== -1) {
             return handlers.aggDATA(request, response);
         } else if (request.url.indexOf('/peak-aq-data.json') !== -1) {
             return handlers.peakDATA(request, response);

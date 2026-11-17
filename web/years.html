@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Years</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./css/theme.css">
+    <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+    <style>
+        :root {
+            --surface: #12121e;
+            --ink-1: #e2e8f0;
+            --ink-2: #94a3b8;
+            --ink-3: #64748b;
+            --grid: rgba(255, 255, 255, 0.06);
+            --axis: rgba(255, 255, 255, 0.16);
+            --accent: #3987e5;
+            --empty: #1e2133;
+        }
+        main { max-width: 1180px; margin: 0 auto; }
+        header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 0.75rem; }
+        h1 { color: var(--ink-1); font-size: 1.4rem; font-weight: 600; margin: 0.5rem 0 0.25rem; }
+        .sub { color: var(--ink-3); margin: 0; }
+        .card {
+            background: var(--surface); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px;
+            padding: 1rem 1.1rem 1.1rem; margin-top: 1.25rem; position: relative;
+        }
+        .card-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.5rem 1rem; }
+        h2 { color: var(--ink-1); font-size: 1rem; font-weight: 600; margin: 0; }
+        .hint { color: var(--ink-3); font-size: 0.8rem; margin: 0.2rem 0 0.75rem; }
+        .controls { margin: 0; justify-content: flex-end; }
+        .seg { display: inline-flex; background: #1e2235; border: 1px solid rgba(255,255,255,0.1); border-radius: 7px; padding: 2px; }
+        .seg button {
+            font: inherit; font-size: 0.85rem; color: var(--ink-2); background: none; border: 0;
+            padding: 0.35rem 0.8rem; border-radius: 5px; cursor: pointer;
+        }
+        .seg button[aria-pressed="true"] { background: #2b3150; color: var(--ink-1); }
+        .seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+        .scroll { overflow-x: auto; }
+        svg { display: block; font-family: inherit; }
+        svg text { fill: var(--ink-3); font-size: 11px; }
+        svg .year-label { fill: var(--ink-2); font-size: 12px; font-weight: 600; }
+        .legend { display: flex; flex-wrap: wrap; gap: 0.35rem 1rem; align-items: center; margin-top: 0.7rem; color: var(--ink-2); font-size: 0.8rem; }
+        .legend .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 0.35rem; vertical-align: -2px; }
+        .legend .ln { display: inline-block; width: 16px; height: 0; border-top: 2px solid; margin-right: 0.35rem; vertical-align: 3px; }
+        .legend .grad { display: inline-block; width: 140px; height: 10px; border-radius: 3px; vertical-align: -1px; margin: 0 0.4rem; }
+        .note {
+            font-size: 0.8rem; color: #fbbf24; background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.2);
+            border-radius: 6px; padding: 0.4rem 0.6rem; margin: 0 0 0.75rem;
+        }
+        .foot { color: var(--ink-3); font-size: 0.75rem; margin: 0.75rem 0 0; }
+        #tip {
+            position: fixed; pointer-events: none; z-index: 10; display: none; min-width: 140px;
+            background: #1b1e2e; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.5); padding: 0.5rem 0.65rem; font-size: 0.8rem; color: var(--ink-2);
+        }
+        #tip .t { color: var(--ink-3); font-size: 0.75rem; margin-bottom: 0.25rem; }
+        #tip .row { display: flex; align-items: center; gap: 0.45rem; margin-top: 0.15rem; }
+        #tip .v { color: var(--ink-1); font-weight: 600; font-variant-numeric: tabular-nums; }
+        #tip .ln { display: inline-block; width: 12px; border-top: 2px solid; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.82rem; font-variant-numeric: tabular-nums; }
+        th { color: var(--ink-3); font-weight: 500; text-align: right; padding: 0.4rem 0.6rem; border-bottom: 1px solid var(--axis); white-space: nowrap; }
+        td { color: var(--ink-2); text-align: right; padding: 0.45rem 0.6rem; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+        th:first-child, td:first-child { text-align: left; }
+        td:first-child { color: var(--ink-1); font-weight: 600; }
+        td .d { color: var(--ink-3); font-size: 0.75rem; margin-left: 0.3rem; }
+        td.rec { color: var(--ink-1); font-weight: 600; }
+        td.rec::after { content: '●'; color: #f0883e; font-size: 0.55rem; margin-left: 0.3rem; vertical-align: 2px; }
+        .partial { color: var(--ink-3); font-weight: 400; font-size: 0.75rem; }
+        .loading { opacity: 0.45; transition: opacity 0.2s; }
+        #status { color: var(--ink-3); margin-top: 2rem; text-align: center; }
+    </style>
+</head>
+<body>
+<main>
+    <header>
+        <div>
+            <h1 id="title">Years</h1>
+            <p class="sub" id="span"></p>
+        </div>
+        <div class="seg" role="group" aria-label="Sensor" id="sensor-seg">
+            <button type="button" data-sensor="outdoor">Outdoor</button>
+            <button type="button" data-sensor="indoor">Indoor</button>
+        </div>
+    </header>
+
+    <div id="status">Loading daily data…</div>
+    <div id="content" hidden>
+        <section class="card">
+            <div class="card-head">
+                <h2>Every day</h2>
+                <div class="seg" role="group" aria-label="Calendar metric" id="cal-metric"></div>
+            </div>
+            <p class="hint" id="cal-hint"></p>
+            <p class="note" id="cal-note" hidden></p>
+            <div class="scroll"><svg id="calendar" role="img" aria-label="Calendar heatmap of daily values"></svg></div>
+            <div class="legend" id="cal-legend"></div>
+        </section>
+
+        <section class="card">
+            <div class="card-head">
+                <h2>One year against the others</h2>
+                <div class="controls">
+                    <div class="seg" role="group" aria-label="Band metric" id="band-metric"></div>
+                    <select id="band-year" aria-label="Year to highlight"></select>
+                </div>
+            </div>
+            <p class="hint">7-day averages. The band spans the other years' lowest to highest value for each date.</p>
+            <p class="note" id="band-note" hidden></p>
+            <div class="scroll"><svg id="band" role="img" aria-label="Selected year compared with the range of other years"></svg></div>
+            <div class="legend" id="band-legend"></div>
+        </section>
+
+        <section class="card">
+            <div class="card-head"><h2>Air quality days per year</h2></div>
+            <p class="hint">Each day is rated by its 24-hour average PM2.5 (EPA 2024 breakpoints).</p>
+            <p class="note" id="aqi-note" hidden></p>
+            <div class="scroll"><svg id="aqi-bars" role="img" aria-label="Days per AQI category for each year"></svg></div>
+            <div class="legend" id="aqi-legend"></div>
+        </section>
+
+        <section class="card">
+            <div class="card-head"><h2>Almanac</h2></div>
+            <p class="hint">Extremes and counts for each year. <span style="color:#f0883e">●</span> marks the record. Day counts only compare full years.</p>
+            <div class="scroll"><table id="almanac"></table></div>
+            <p class="foot">Highs and lows are the warmest and coolest hourly averages, so true extremes run slightly further out.
+                A day needs 18 hours of data to be counted.</p>
+        </section>
+    </div>
+</main>
+<div id="tip" role="tooltip"></div>
+<script src="./js/sensor-state.js"></script>
+<script src="./years.js"></script>
+</body>
+</html>

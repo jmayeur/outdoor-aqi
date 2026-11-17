@@ -1,7 +1,7 @@
 const sqlite3 = require('sqlite3').verbose()
 
 const openDB = () => {
-    const path = '../environment';
+    const path = process.env.ENVIRO_DB || '../environment';
     return new Promise((resolve, reject) => {
          const db = new sqlite3.Database(path, sqlite3.OPEN_READONLY,
             (err) => {
@@ -107,4 +107,4 @@ const readData = async (durationDays, table) => {
     });
 };
 
-module.exports = {readEnviroData, readData, readRealtimeData, readAboveThresholdP25Hours};
+module.exports = {openDB, closeDB, readEnviroData, readData, readRealtimeData, readAboveThresholdP25Hours};
